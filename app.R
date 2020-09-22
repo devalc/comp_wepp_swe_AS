@@ -5,6 +5,11 @@ df <- readRDS("data/final.rds")
 
 qpal <- colorQuantile("YlOrRd", df$states , n = 12)
 
+pal <- colorFactor(
+  palette = 'viridis',
+  domain = df$states
+)
+
 ui <- navbarPage(title = "WEPP-SNOTEL-comparison",
                              
                           id="nav",
@@ -62,8 +67,8 @@ server <- function(input, output, session) {
     leafletProxy("map", data = df) %>% 
         addTiles() %>%
         addCircles(lng = ~longitude, lat = ~latitude, weight = 1,
-                   popup = ~sntl_name, radius = 30000, 
-                   color = ~qpal(nse_bcqc), fillOpacity = 1)
+                   popup = ~sntl_name, radius = ~40000*nse_bcqc, 
+                   color = ~pal(state), fillOpacity = .1)
     
     # qpal <- colorQuantile("YlOrRd", df$state, n = 12)
     
