@@ -5,7 +5,9 @@ of statistical comparions between SNOTEL observed SWE and WEPP simulated Snow Wa
 
 ## Find this application in action here:
 
+https://cdeval.shinyapps.io/WEPPPerformanceExplorer/
+
 ## User Interface Demo
 
-![Alt Text](https://github.com/devalc/comp_wepp_swe_AS/gifs/swe.gif=600x)
+![Alt Text](https://github.com/devalc/comp_wepp_swe_AS/gifs/swe.gif)
 
