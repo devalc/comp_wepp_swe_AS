@@ -1,0 +1,13 @@
+name: WEPPPerformanceExplorer
+title: WEPPPerformanceExplorer
+username:
+account: cdeval
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2912020
+bundleId: 3684433
+url: https://cdeval.shinyapps.io/WEPPPerformanceExplorer/
+when: 1601405813.86609
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .gitattributes|explote.R|data/FINAL.CSV
