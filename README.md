@@ -7,5 +7,5 @@ of statistical comparions between SNOTEL observed SWE and WEPP simulated Snow Wa
 
 ## User Interface Demo
 
-![Alt Text](https://github.com/devalc/comp_wepp_swe_AS/blob/master/gifs/swe.gif=600x)
+![Alt Text](https://github.com/devalc/comp_wepp_swe_AS/gifs/swe.gif=600x)
 
