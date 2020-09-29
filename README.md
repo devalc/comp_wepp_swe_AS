@@ -9,5 +9,5 @@ https://cdeval.shinyapps.io/WEPPPerformanceExplorer/
 
 ## User Interface Demo
 
-![Alt Text](https://github.com/devalc/comp_wepp_swe_AS/gifs/swe.gif)
+![Alt Text](https://github.com/devalc/comp_wepp_swe_AS/blob/master/gifs/swe.gif)
 
