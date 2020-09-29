@@ -9,15 +9,6 @@ d <-  df %>% dplyr::select(sntl_station, state, dplyr::contains(c("nse_")))
 
 d.m <- reshape2::melt(d)
 
-## Calculates percent contribution of each variable across all
-## the simulated scenarios
-# d.m <- d.m %>%
-#   group_by(variable) %>%
-#   mutate(total = sum(value),
-#          share = (value / total) * 100) %>%
-#   ungroup()
-
-
 
 d.m <- d.m %>% dplyr::filter(sntl_station == "1000_OR")
 
