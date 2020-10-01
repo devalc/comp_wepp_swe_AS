@@ -3,16 +3,21 @@ library(leaflet)
 library(viridis)
 library(plotly)
 library(tidyverse)
-library(plotly)
 library(reshape2)
-library(dplyr)
-
+library(shinyWidgets)
+library(shinycustomloader)
 # data frame
 
-df <- readRDS("data/final.rds")
+df <- readRDS("data/final_with_temp.RDS")
 
-# colnames(df)[27] <- "lat"
-# colnames(df)[28] <- "long"
+# df[ , 32:46] <- lapply(df[ , 32:46], as.Date,format = "%m/%d/%Y")
+# 
+# df$T1 <- tidyr::replace_na(df$T1, " ")
+
+lst <- list.files("data/WEPP_WITH_DAYMET/", pattern = ".csv")
+nos <-sapply( str_split(lst, "_"), `[`, 1) %>%
+  as.numeric() %>% sort() 
+
 
 # color palette
 
@@ -34,56 +39,102 @@ vars <- c(
   "Peak_PBIAS" = "Peak_PBIAS"
 )
 
+prods <- c(
+  "Select Option" = "Select Option",
+  "DAYMET_" = "DAYMET",
+  "GRIDMET_" = "GRIDMET",
+  "PRISM_" = "PRISM"
+)
 
+
+sntlno <- c( prepend(nos, "Select Option"))
+
+
+## ----------------------------------Init Options---------------------------------------##
+options(shiny.maxRequestSize = 100 * 1024 ^ 2)
+
+## ----------------------------------define UI------------------------------------------##
+# 
 
 ui <- navbarPage(title = "WEPP Performance Explorer",
                              
                           id="nav",
+                 theme = "mytheme.css",
+                  
                              
-                             tabPanel("Comparison With SNOTEL Sites",
+                             tabPanel("Spatial Map",
+                                      
                                       div(class="outer",
                                           
                                           tags$head(
                                               # Include our custom CSS
                                               includeCSS("styles.css"),
-                                              # includeScript("gomaps.js"),
-                                              
-                                          ),
+                                              includeScript("gtag.js"
+                                              )
+                                              ),
+                                          
                                           
                                           # If not using custom CSS, set height of leafletOutput to a number instead of percent
                                           leafletOutput("map", width="100%", height="100%"),
+                                          
                                           
                                           # Shiny versions prior to 0.11 should use class = "modal" instead.
                                           absolutePanel(id = "controls", 
                                                         class = "panel panel-default",
                                                         fixed = TRUE,
-                                                        draggable = TRUE, top = 60, left = "auto",
-                                                        right = 20, bottom = "auto",
+                                                        draggable = TRUE, top = 520, left = 10,
+                                                        right = "auto", bottom = "auto",
                                                         width = 330, height = "auto", 
                                                         
-                                                        h2(" "),
+                                                        pickerInput("metric", "Performance Metric", 
+                                                                    vars, selected = "NSE",),
                                                         
-                                                        # selectInput("color", "Color", vars),
-                                                        selectInput("metric", "Performance Metric", 
-                                                                    vars, selected = "NSE"),
-                                                        h4(" "),
-                                                        plotOutput("box", height = 300),
+                                                       
                                                         
-                                                        # h4(" "),
-                                                        # plotOutput("heat", height = 300)
+                                                        plotOutput("box", height = 350)
                                                         
                                                         ),
-                                                        
-                                          
-                                          #plotlyOutput("heatmap", height = 300),
-                                                        # plotOutput("scatterCollegeIncome", height = 250)
-                                          )
+                                         )
                                           
                                          
-                                      )
-                             )
+                                      ),
+                 tabPanel("SNOTEL Specific Time Series",
+                          
+                          tags$head(
+                            includeScript("gtag.js"
+                            )
+                          ),
+                          
+                          sidebarPanel(width = 3,
+                                       
+                                       pickerInput("product", "Precipitation Product", 
+                                                   prods, selected = NULL),
+                                       
+                                       pickerInput("snotel", "SNOTEL ID", 
+                                                   sntlno, selected = NULL),
+                                       ),
+                          mainPanel(width = 9,
+                                    
+                                    fluidRow(
+                                      column(
+                                        12,
+                                        offset = 0,
+                                        plotlyOutput("ts", height = 800) %>% 
+                                          withLoader(type = "text",
+                                                     loader = list(
+                                                       marquee("Please select the precipitaiton product and SNOTEL ID to visualize",
+                                                               style = "font-size:25px", scrollamount = 5,behavior = "alternate")))
+                                        
+                                      ))
+                                    
+                                            
+                                    
+                                    )
+                 )
+                 )
+                             
   
-
+## ----------------------------------define server logic------------------------------------------##
 
 server <- function(input, output, session) {
     
@@ -95,7 +146,9 @@ server <- function(input, output, session) {
                         ) %>%
       leaflet::addMarkers()
   })
-    
+
+  
+
 
   data_map <- reactive({
     req(input$metric)
@@ -154,7 +207,7 @@ server <- function(input, output, session) {
   
   
   output$box <- renderPlot({
-   
+    par(mar=c(1,3,0,0))
     boxplot(value~variable,
             data=data_map(),
             main=" ",
@@ -162,34 +215,13 @@ server <- function(input, output, session) {
             ylab=" ",
             col="#69b3a2",
             border="black",
-            las=2,
+            las=1,
             names=c('DAYMET','GRIDMET','PRISM')
     )
   })
     
 
-  
-  # output$heat <- renderPlotly(
-  #   
-  #   ggplot(data_map(), aes(variable, sntl_station,  fill = value)) +
-  #     geom_tile(inherit.aes = TRUE)  +
-  #     scale_fill_distiller(palette =  "RdBu", direction = -1) +
-  #     theme(
-  #       axis.text.x = element_text(angle = 90, colour = "Black"),
-  #       axis.text.y = element_text(colour = "Black"),
-  #       axis.title = element_blank(),
-  #       legend.position='right')
-  #   # ggplot(data_map(), aes(x=data_map()$variable, y=data_map()$value)) + 
-  #   #   geom_boxplot() + theme_bw() +
-  #   #   theme(axis.title.x=element_blank(),
-  #   #         axis.title.y=element_blank(),
-  #   #         #axis.text.x=element_blank(),
-  #   #         axis.ticks.x=element_blank()
-  #   #   ) + coord_flip()
-  # )
- 
-
-    observe({
+  observe({
       metricval <- input$metric 
       
       if (input$metric == "NSE") {
@@ -206,12 +238,18 @@ server <- function(input, output, session) {
                              "Elevation (ft):", df$snotel_elev_ft, "<br>",
                              "Observation Years:", df$period_yrs, "<br>",
                              "NSE:", round(df$nse_daymet,3), "<br>",
-                             "Product:", "DAYMET", "<br>"),
+                             "Product:", "DAYMET", "<br>",
+                             "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                      df$T4," ", df$T5," ", df$T6," ",
+                                                      df$T7," ", df$T8," ", df$T9," ",
+                                                      df$T10," ", df$T11," ", df$T12," ",
+                                                      df$T13," ", df$T14," ", df$T15),"<br>" ),
                  radius = 6000,
                  color = ~pal_nse(nse_daymet), fillOpacity = 0.6,
                  highlightOptions = highlightOptions(weight = 10),
                  label = ~sntl_name,
-                 group = "DAYMET")%>%
+                 group = "DAYMET",
+                 layerId = ~paste0("D_", df$sntl_station))%>%
       
       addCircles(lng = ~longitude, lat = ~latitude, weight = 0.5,
                  popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:", df$sntl_id, "<br>",
@@ -223,7 +261,8 @@ server <- function(input, output, session) {
                  color = ~pal_nse(nse_gridmet), fillOpacity = 0.6,
                  highlightOptions = highlightOptions(weight = 10),
                  label = ~sntl_name,
-                 group = "GRIDMET") %>%
+                 group = "GRIDMET",
+                 layerId = ~paste0("G_", df$sntl_station)) %>%
           
           addCircles(lng = ~longitude, lat = ~latitude, weight = 0.5,
                      popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:", df$sntl_id, "<br>",
@@ -235,7 +274,8 @@ server <- function(input, output, session) {
                      color = ~pal_nse(nse_prism), fillOpacity = 0.6,
                      highlightOptions = highlightOptions(weight = 10),
                      label = ~sntl_name,
-                     group = "PRISM") %>%
+                     group = "PRISM",
+                     layerId = ~paste0("P_", df$sntl_station)) %>%
       
       addLegend(pal = pal_nse, values = ~nse_daymet,title = "",
                 group = c("DAYMET", "GRIDMET","PRISM"),
@@ -261,7 +301,8 @@ server <- function(input, output, session) {
                      color = ~pal_pbias(pbias_daymet), fillOpacity = 0.6,
                      highlightOptions = highlightOptions(weight = 10),
                      label = ~sntl_name,
-                     group = "DAYMET")%>%
+                     group = "DAYMET",
+                     layerId = ~paste0("D_", df$sntl_station))%>%
             
             addCircles(lng = ~longitude, lat = ~latitude, weight = 1,
                        popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:", df$sntl_id, "<br>",
@@ -273,7 +314,8 @@ server <- function(input, output, session) {
                        color = ~pal_pbias(pbias_gridmet), fillOpacity = 0.6,
                        highlightOptions = highlightOptions(weight = 10),
                        label = ~sntl_name,
-                       group = "GRIDMET")%>%
+                       group = "GRIDMET",
+                       layerId = ~paste0("G_", df$sntl_station))%>%
 
             addCircles(lng = ~longitude, lat = ~latitude, weight = 1,
                        popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:", df$sntl_id, "<br>",
@@ -285,7 +327,8 @@ server <- function(input, output, session) {
                        color = ~pal_pbias(pbias_prism), fillOpacity = 0.6,
                        highlightOptions = highlightOptions(weight = 10),
                        label = ~sntl_name,
-                       group = "PRISM") %>%
+                       group = "PRISM",
+                       layerId = ~paste0("P_", df$sntl_station)) %>%
 
             addLegend(pal = pal_pbias, values = ~pbias_daymet,title = "",
                       group = c("DAYMET", "GRIDMET","PRISM"),
@@ -308,7 +351,8 @@ server <- function(input, output, session) {
                        color = ~pal_nse(peak_nse_daymet), fillOpacity = 0.6,
                        highlightOptions = highlightOptions(weight = 10),
                        label = ~sntl_name,
-                       group = "DAYMET")%>%
+                       group = "DAYMET",
+                       layerId = ~paste0("D_", df$sntl_station))%>%
             
             addCircles(lng = ~longitude, lat = ~latitude, weight = 1,
                        popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:", df$sntl_id, "<br>",
@@ -320,7 +364,8 @@ server <- function(input, output, session) {
                        color = ~pal_nse(peak_nse_gridmet), fillOpacity = 0.6,
                        highlightOptions = highlightOptions(weight = 10),
                        label = ~sntl_name,
-                       group = "GRIDMET")%>%
+                       group = "GRIDMET",
+                       layerId = ~paste0("G_", df$sntl_station))%>%
 
             addCircles(lng = ~longitude, lat = ~latitude, weight = 0.6,
                        popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:", df$sntl_id, "<br>",
@@ -332,7 +377,8 @@ server <- function(input, output, session) {
                        color = ~pal_nse(peak_nse_prism), fillOpacity = 0.6,
                        highlightOptions = highlightOptions(weight = 10),
                        label = ~sntl_name,
-                       group = "PRISM") %>%
+                       group = "PRISM",
+                       layerId = ~paste0("P_", df$sntl_station)) %>%
             
             addLegend(pal = pal_nse, values = ~nse_daymet,title = "",
                       group = c("DAYMET", "GRIDMET","PRISM"),
@@ -356,7 +402,8 @@ server <- function(input, output, session) {
                          color = ~pal_pbias(peak_pbias_daymet), fillOpacity = 0.6,
                          highlightOptions = highlightOptions(weight = 10),
                          label = ~sntl_name,
-                         group = "DAYMET")%>%
+                         group = "DAYMET",
+                         layerId = ~paste0("D_", df$sntl_station))%>%
               
               addCircles(lng = ~longitude, lat = ~latitude, weight = 1,
                          popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:", df$sntl_id, "<br>",
@@ -368,7 +415,8 @@ server <- function(input, output, session) {
                          color = ~pal_pbias(peak_pbias_gridmet), fillOpacity = 0.6,
                          highlightOptions = highlightOptions(weight = 10),
                          label = ~sntl_name,
-                         group = "GRIDMET")%>%
+                         group = "GRIDMET",
+                         layerId = ~paste0("G_", df$sntl_station))%>%
               
               addCircles(lng = ~longitude, lat = ~latitude, weight = 1,
                          popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:", df$sntl_id, "<br>",
@@ -380,7 +428,8 @@ server <- function(input, output, session) {
                          color = ~pal_pbias(peak_pbias_prism), fillOpacity = 0.6,
                          highlightOptions = highlightOptions(weight = 10),
                          label = ~sntl_name,
-                         group = "PRISM") %>%
+                         group = "PRISM",
+                         layerId = ~paste0("P_", df$sntl_station)) %>%
               
               addLegend(pal = pal_pbias, values = ~pbias_daymet,title = "",
                         group = c("DAYMET", "GRIDMET","PRISM"),
@@ -393,11 +442,111 @@ server <- function(input, output, session) {
           }
             
         })
-   
-    
-   
-    
-    
+ 
+  
+  observe({
+    pprod <- input$product
+    sntlno <- input$snotel
+
+    if (pprod == "DAYMET") {
+      path <- paste0("data/WEPP_WITH_",pprod,"/")
+      # print(path)
+      if(sntlno == "Select Option"){
+        return()
+      }else
+      tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
+      tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
+      # print(str(tsf))
+      output$ts <- renderPlotly({
+        req(pprod)
+        req(sntlno)
+        ax <- list(
+          title = " "
+        )
+        
+        fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, 
+                       type = 'scatter', mode = 'lines', name = "Observed SWE (mm)",
+                       line = list(color = '#000000'))
+        fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)', 
+                                 mode = 'lines', line = list(color = '#FF0000')) 
+        fig <- fig %>% layout(xaxis = ax, yaxis = ax, 
+                              legend = list(orientation = "h",   # show entries horizontally
+                                            xanchor = "center",  # use center of legend as anchor
+                                            x = 0.5),
+                              margin = list( pad = 0, autoexpand = TRUE))
+        fig
+      })
+    }else{
+      if (pprod == "GRIDMET") {
+        path <- paste0("data/WEPP_WITH_",pprod,"/")
+        # print(path)
+        if(sntlno == "Select Option"){
+          return()
+        }else{
+          tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
+          tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
+          # print(str(tsf))
+          output$ts <- renderPlotly({
+            req(pprod)
+            req(sntlno)
+            ax <- list(
+              title = " "
+            )
+            
+            fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, type = 'scatter', 
+                           mode = 'lines', name = "Observed SWE (mm)",
+                           line = list(color = '#000000'))
+            fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
+                                     mode = 'lines',
+                                     line = list(color = '#FF0000')) 
+            fig <- fig %>% layout(xaxis = ax, yaxis = ax, 
+                                  legend = list(orientation = "h",   # show entries horizontally
+                                                xanchor = "center",  # use center of legend as anchor
+                                                x = 0.5))
+            fig
+            })
+      }
+        
+      
+      }else{
+        if (pprod == "PRISM") {
+          path <- paste0("data/WEPP_WITH_",pprod,"/")
+          # print(path)
+          if(sntlno == "Select Option"){
+            return()
+          }else{
+            tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
+            tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
+            # print(str(tsf))
+            output$ts <- renderPlotly({
+              req(pprod)
+              req(sntlno)
+              ax <- list(
+                title = " "
+              )
+              
+              fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, type = 'scatter',
+                             mode = 'lines', name = "Observed SWE (mm)",
+                             line = list(color = '#000000'))
+              fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
+                                       mode = 'lines',
+                                       line = list(color = '#FF0000')) 
+              fig <- fig %>% layout(xaxis = ax, yaxis = ax, 
+                                    legend = list(orientation = "h",   # show entries horizontally
+                                                  xanchor = "center",  # use center of legend as anchor
+                                                  x = 0.5))
+              fig
+            })
+          }
+          
+          
+        }
+      }
+    }
+       
+  
+    })
+
     
 }
 
