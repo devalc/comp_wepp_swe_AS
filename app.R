@@ -43,7 +43,8 @@ prods <- c(
   "Select Option" = "Select Option",
   "DAYMET_" = "DAYMET",
   "GRIDMET_" = "GRIDMET",
-  "PRISM_" = "PRISM"
+  "PRISM_" = "PRISM",
+  "RAW_" = "RAW"
 )
 
 
@@ -82,7 +83,7 @@ ui <- navbarPage(title = "WEPP Performance Explorer",
                                           absolutePanel(id = "controls", 
                                                         class = "panel panel-default",
                                                         fixed = TRUE,
-                                                        draggable = TRUE, top = 520, left = 10,
+                                                        draggable = TRUE, top = 140, left = 180,
                                                         right = "auto", bottom = "auto",
                                                         width = 330, height = "auto", 
                                                         
@@ -119,7 +120,7 @@ ui <- navbarPage(title = "WEPP Performance Explorer",
                                       column(
                                         12,
                                         offset = 0,
-                                        plotlyOutput("ts", height = 800) %>% 
+                                        plotlyOutput("ts", height = 600) %>% 
                                           withLoader(type = "text",
                                                      loader = list(
                                                        marquee("Please select the precipitaiton product and SNOTEL ID to visualize",
@@ -160,7 +161,7 @@ server <- function(input, output, session) {
       bounds <- input$map_bounds
       df %>%
         dplyr::filter(latitude > bounds$south & latitude < bounds$north & longitude < bounds$east & longitude > bounds$west) %>%
-        dplyr::select(sntl_station, state, contains(c("daymet", "gridmet", "prism")))%>%
+        dplyr::select(sntl_station, state, contains(c("daymet", "gridmet", "prism", "raw")))%>%
         dplyr::select(sntl_station, state, starts_with(c("nse_"))) %>%
         reshape2::melt()  
     }
@@ -172,7 +173,7 @@ server <- function(input, output, session) {
           bounds <- input$map_bounds
           df %>%
             dplyr::filter(latitude > bounds$south & latitude < bounds$north & longitude < bounds$east & longitude > bounds$west) %>%
-            dplyr::select(sntl_station, state, contains(c("daymet", "gridmet", "prism")))%>%
+            dplyr::select(sntl_station, state, contains(c("daymet", "gridmet", "prism", "raw")))%>%
             dplyr::select(sntl_station, state, starts_with(c("peak_pbias_"))) %>%
             reshape2::melt()  
         }
@@ -184,7 +185,7 @@ server <- function(input, output, session) {
             bounds <- input$map_bounds
             df %>%
               dplyr::filter(latitude > bounds$south & latitude < bounds$north & longitude < bounds$east & longitude > bounds$west) %>%
-              dplyr::select(sntl_station, state, contains(c("daymet", "gridmet", "prism")))%>%
+              dplyr::select(sntl_station, state, contains(c("daymet", "gridmet", "prism", "raw")))%>%
               dplyr::select(sntl_station, state, starts_with(c("peak_nse_"))) %>%
               reshape2::melt()  
           }
@@ -196,7 +197,7 @@ server <- function(input, output, session) {
               bounds <- input$map_bounds
               df %>%
                 dplyr::filter(latitude > bounds$south & latitude < bounds$north & longitude < bounds$east & longitude > bounds$west) %>%
-                dplyr::select(sntl_station, state, contains(c("daymet", "gridmet", "prism")))%>%
+                dplyr::select(sntl_station, state, contains(c("daymet", "gridmet", "prism", "raw")))%>%
                 dplyr::select(sntl_station, state, starts_with(c("peak_pbias_"))) %>%
                 reshape2::melt()  
             }
@@ -216,7 +217,7 @@ server <- function(input, output, session) {
             col="#69b3a2",
             border="black",
             las=1,
-            names=c('DAYMET','GRIDMET','PRISM')
+            names=c('DAYMET','GRIDMET','PRISM', 'RAW')
     )
   })
     
@@ -256,7 +257,12 @@ server <- function(input, output, session) {
                              "Elevation (ft):", df$snotel_elev_ft, "<br>",
                              "Observation Years:", df$period_yrs, "<br>",
                              "NSE:", round(df$nse_gridmet,3), "<br>",
-                             "Product:", "GRIDMET", "<br>"),
+                             "Product:", "GRIDMET", "<br>",
+                             "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                      df$T4," ", df$T5," ", df$T6," ",
+                                                      df$T7," ", df$T8," ", df$T9," ",
+                                                      df$T10," ", df$T11," ", df$T12," ",
+                                                      df$T13," ", df$T14," ", df$T15),"<br>" ),
                  radius = 6000,
                  color = ~pal_nse(nse_gridmet), fillOpacity = 0.6,
                  highlightOptions = highlightOptions(weight = 10),
@@ -269,20 +275,45 @@ server <- function(input, output, session) {
                                  "Elevation (ft):", df$snotel_elev_ft, "<br>",
                                  "Observation Years:", df$period_yrs, "<br>",
                                  "NSE:", round(df$nse_prism,3), "<br>",
-                                 "Product:", "PRISM", "<br>"),
+                                 "Product:", "PRISM", "<br>",
+                                 "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                          df$T4," ", df$T5," ", df$T6," ",
+                                                          df$T7," ", df$T8," ", df$T9," ",
+                                                          df$T10," ", df$T11," ", df$T12," ",
+                                                          df$T13," ", df$T14," ", df$T15),"<br>" ),
                      radius = 6000,
                      color = ~pal_nse(nse_prism), fillOpacity = 0.6,
                      highlightOptions = highlightOptions(weight = 10),
                      label = ~sntl_name,
                      group = "PRISM",
                      layerId = ~paste0("P_", df$sntl_station)) %>%
+          
+          addCircles(lng = ~longitude, lat = ~latitude, weight = 0.5,
+                     popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:", 
+                                 df$sntl_id, "<br>",
+                                 "Elevation (ft):", df$snotel_elev_ft, "<br>",
+                                 "Observation Years:", df$period_yrs, "<br>",
+                                 "NSE:", round(df$nse_raw,3), "<br>",
+                                 "Product:", "RAW", "<br>",
+                                 "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                          df$T4," ", df$T5," ", df$T6," ",
+                                                          df$T7," ", df$T8," ", df$T9," ",
+                                                          df$T10," ", df$T11," ", df$T12," ",
+                                                          df$T13," ", df$T14," ", df$T15),"<br>" ),
+                     radius = 6000,
+                     color = ~pal_nse(nse_raw), fillOpacity = 0.6,
+                     highlightOptions = highlightOptions(weight = 10),
+                     label = ~sntl_name,
+                     group = "RAW",
+                     layerId = ~paste0("R_", df$sntl_station))%>%
       
       addLegend(pal = pal_nse, values = ~nse_daymet,title = "",
-                group = c("DAYMET", "GRIDMET","PRISM"),
+                group = c("DAYMET", "GRIDMET","PRISM", "RAW"),
                 position = "topleft" )%>%
-      addLayersControl(overlayGroups = c("DAYMET", "GRIDMET", "PRISM"),
+      addLayersControl(overlayGroups = c("DAYMET", "GRIDMET", "PRISM", "RAW"),
                        position = "topleft",
-                       options = layersControlOptions(collapsed = FALSE))%>% hideGroup(c("PRISM", "GRIDMET"))
+                       options = layersControlOptions(collapsed = FALSE))%>% 
+          hideGroup(c("PRISM", "GRIDMET", "RAW"))
       }else
         if (input$metric == "PBIAS") {
 
@@ -296,7 +327,12 @@ server <- function(input, output, session) {
                                  "Elevation (ft):", df$snotel_elev_ft, "<br>",
                                  "Observation Years:", df$period_yrs, "<br>",
                                  "PBIAS:", round(df$pbias_daymet,3), "<br>",
-                                 "Product:", "DAYMET", "<br>"),
+                                 "Product:", "DAYMET", "<br>",
+                                 "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                          df$T4," ", df$T5," ", df$T6," ",
+                                                          df$T7," ", df$T8," ", df$T9," ",
+                                                          df$T10," ", df$T11," ", df$T12," ",
+                                                          df$T13," ", df$T14," ", df$T15),"<br>" ),
                      radius = 6000,
                      color = ~pal_pbias(pbias_daymet), fillOpacity = 0.6,
                      highlightOptions = highlightOptions(weight = 10),
@@ -309,7 +345,12 @@ server <- function(input, output, session) {
                                    "Elevation (ft):", df$snotel_elev_ft, "<br>",
                                    "Observation Years:", df$period_yrs, "<br>",
                                    "PBIAS:", round(df$pbias_gridmet,3), "<br>",
-                                   "Product:", "GRIDMET", "<br>"),
+                                   "Product:", "GRIDMET", "<br>",
+                                   "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                            df$T4," ", df$T5," ", df$T6," ",
+                                                            df$T7," ", df$T8," ", df$T9," ",
+                                                            df$T10," ", df$T11," ", df$T12," ",
+                                                            df$T13," ", df$T14," ", df$T15),"<br>" ),
                        radius = 6000,
                        color = ~pal_pbias(pbias_gridmet), fillOpacity = 0.6,
                        highlightOptions = highlightOptions(weight = 10),
@@ -322,16 +363,41 @@ server <- function(input, output, session) {
                                    "Elevation (ft):", df$snotel_elev_ft, "<br>",
                                    "Observation Years:", df$period_yrs, "<br>",
                                    "PBIAS:", round(df$pbias_prism,3), "<br>",
-                                   "Product:", "PRISM", "<br>"),
+                                   "Product:", "PRISM", "<br>",
+                                   "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                            df$T4," ", df$T5," ", df$T6," ",
+                                                            df$T7," ", df$T8," ", df$T9," ",
+                                                            df$T10," ", df$T11," ", df$T12," ",
+                                                            df$T13," ", df$T14," ", df$T15),"<br>" ),
                        radius = 6000,
                        color = ~pal_pbias(pbias_prism), fillOpacity = 0.6,
                        highlightOptions = highlightOptions(weight = 10),
                        label = ~sntl_name,
                        group = "PRISM",
                        layerId = ~paste0("P_", df$sntl_station)) %>%
+            
+            addCircles(lng = ~longitude, lat = ~latitude, weight = 1,
+                       popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:",
+                                   df$sntl_id, "<br>",
+                                   "Elevation (ft):", df$snotel_elev_ft, "<br>",
+                                   "Observation Years:", df$period_yrs, "<br>",
+                                   "PBIAS:", round(df$pbias_raw,3), "<br>",
+                                   "Product:", "RAW", "<br>",
+                                   "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                            df$T4," ", df$T5," ", df$T6," ",
+                                                            df$T7," ", df$T8," ", df$T9," ",
+                                                            df$T10," ", df$T11," ", df$T12," ",
+                                                            df$T13," ", df$T14," ", df$T15),"<br>" ),
+                       radius = 6000,
+                       color = ~pal_pbias(pbias_raw), fillOpacity = 0.6,
+                       highlightOptions = highlightOptions(weight = 10),
+                       label = ~sntl_name,
+                       group = "RAW",
+                       layerId = ~paste0("R_", df$sntl_station))%>%
+            
 
             addLegend(pal = pal_pbias, values = ~pbias_daymet,title = "",
-                      group = c("DAYMET", "GRIDMET","PRISM"),
+                      group = c("DAYMET", "GRIDMET","PRISM", "RAW"),
                       position = "topleft" )
       }else
         if (input$metric == "Peak_NSE") {
@@ -346,7 +412,12 @@ server <- function(input, output, session) {
                                    "Elevation (ft):", df$snotel_elev_ft, "<br>",
                                    "Observation Years:", df$period_yrs, "<br>",
                                    "NSE:", round(df$peak_nse_daymet,3), "<br>",
-                                   "Product:", "DAYMET", "<br>"),
+                                   "Product:", "DAYMET", "<br>",
+                                   "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                            df$T4," ", df$T5," ", df$T6," ",
+                                                            df$T7," ", df$T8," ", df$T9," ",
+                                                            df$T10," ", df$T11," ", df$T12," ",
+                                                            df$T13," ", df$T14," ", df$T15),"<br>" ),
                        radius = 6000,
                        color = ~pal_nse(peak_nse_daymet), fillOpacity = 0.6,
                        highlightOptions = highlightOptions(weight = 10),
@@ -359,7 +430,12 @@ server <- function(input, output, session) {
                                    "Elevation (ft):", df$snotel_elev_ft, "<br>",
                                    "Observation Years:", df$period_yrs, "<br>",
                                    "NSE:", round(df$peak_nse_gridmet,3), "<br>",
-                                   "Product:", "GRIDMET", "<br>"),
+                                   "Product:", "GRIDMET", "<br>",
+                                   "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                            df$T4," ", df$T5," ", df$T6," ",
+                                                            df$T7," ", df$T8," ", df$T9," ",
+                                                            df$T10," ", df$T11," ", df$T12," ",
+                                                            df$T13," ", df$T14," ", df$T15),"<br>" ),
                        radius = 6000,
                        color = ~pal_nse(peak_nse_gridmet), fillOpacity = 0.6,
                        highlightOptions = highlightOptions(weight = 10),
@@ -372,7 +448,12 @@ server <- function(input, output, session) {
                                    "Elevation (ft):", df$snotel_elev_ft, "<br>",
                                    "Observation Years:", df$period_yrs, "<br>",
                                    "NSE:", round(df$peak_nse_prism,3), "<br>",
-                                   "Product:", "PRISM", "<br>"),
+                                   "Product:", "PRISM", "<br>",
+                                   "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                            df$T4," ", df$T5," ", df$T6," ",
+                                                            df$T7," ", df$T8," ", df$T9," ",
+                                                            df$T10," ", df$T11," ", df$T12," ",
+                                                            df$T13," ", df$T14," ", df$T15),"<br>" ),
                        radius = 6000,
                        color = ~pal_nse(peak_nse_prism), fillOpacity = 0.6,
                        highlightOptions = highlightOptions(weight = 10),
@@ -380,8 +461,26 @@ server <- function(input, output, session) {
                        group = "PRISM",
                        layerId = ~paste0("P_", df$sntl_station)) %>%
             
+            addCircles(lng = ~longitude, lat = ~latitude, weight = 1,
+                       popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:", df$sntl_id, "<br>",
+                                   "Elevation (ft):", df$snotel_elev_ft, "<br>",
+                                   "Observation Years:", df$period_yrs, "<br>",
+                                   "NSE:", round(df$peak_nse_raw,3), "<br>",
+                                   "Product:", "RAW", "<br>",
+                                   "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                            df$T4," ", df$T5," ", df$T6," ",
+                                                            df$T7," ", df$T8," ", df$T9," ",
+                                                            df$T10," ", df$T11," ", df$T12," ",
+                                                            df$T13," ", df$T14," ", df$T15),"<br>" ),
+                       radius = 6000,
+                       color = ~pal_nse(peak_nse_raw), fillOpacity = 0.6,
+                       highlightOptions = highlightOptions(weight = 10),
+                       label = ~sntl_name,
+                       group = "RAW",
+                       layerId = ~paste0("R_", df$sntl_station))%>%
+            
             addLegend(pal = pal_nse, values = ~nse_daymet,title = "",
-                      group = c("DAYMET", "GRIDMET","PRISM"),
+                      group = c("DAYMET", "GRIDMET","PRISM", "RAW"),
                       position = "topleft" )
           # 
         }else
@@ -397,7 +496,12 @@ server <- function(input, output, session) {
                                      "Elevation (ft):", df$snotel_elev_ft, "<br>",
                                      "Observation Years:", df$period_yrs, "<br>",
                                      "Peak PBIAS:", round(df$peak_pbias_daymet,3), "<br>",
-                                     "Product:", "DAYMET", "<br>"),
+                                     "Product:", "DAYMET", "<br>",
+                                     "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                              df$T4," ", df$T5," ", df$T6," ",
+                                                              df$T7," ", df$T8," ", df$T9," ",
+                                                              df$T10," ", df$T11," ", df$T12," ",
+                                                              df$T13," ", df$T14," ", df$T15),"<br>" ),
                          radius = 6000,
                          color = ~pal_pbias(peak_pbias_daymet), fillOpacity = 0.6,
                          highlightOptions = highlightOptions(weight = 10),
@@ -410,7 +514,12 @@ server <- function(input, output, session) {
                                      "Elevation (ft):", df$snotel_elev_ft, "<br>",
                                      "Observation Years:", df$period_yrs, "<br>",
                                      "Peak PBIAS:", round(df$peak_pbias_gridmet,3), "<br>",
-                                     "Product:", "GRIDMET", "<br>"),
+                                     "Product:", "GRIDMET", "<br>",
+                                     "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                              df$T4," ", df$T5," ", df$T6," ",
+                                                              df$T7," ", df$T8," ", df$T9," ",
+                                                              df$T10," ", df$T11," ", df$T12," ",
+                                                              df$T13," ", df$T14," ", df$T15),"<br>" ),
                          radius = 6000,
                          color = ~pal_pbias(peak_pbias_gridmet), fillOpacity = 0.6,
                          highlightOptions = highlightOptions(weight = 10),
@@ -423,7 +532,12 @@ server <- function(input, output, session) {
                                      "Elevation (ft):", df$snotel_elev_ft, "<br>",
                                      "Observation Years:", df$period_yrs, "<br>",
                                      "Peak PBIAS:", round(df$peak_pbias_prism,3), "<br>",
-                                     "Product:", "PRISM", "<br>"),
+                                     "Product:", "PRISM", "<br>",
+                                     "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                              df$T4," ", df$T5," ", df$T6," ",
+                                                              df$T7," ", df$T8," ", df$T9," ",
+                                                              df$T10," ", df$T11," ", df$T12," ",
+                                                              df$T13," ", df$T14," ", df$T15),"<br>" ),
                          radius = 6000,
                          color = ~pal_pbias(peak_pbias_prism), fillOpacity = 0.6,
                          highlightOptions = highlightOptions(weight = 10),
@@ -431,8 +545,26 @@ server <- function(input, output, session) {
                          group = "PRISM",
                          layerId = ~paste0("P_", df$sntl_station)) %>%
               
+              addCircles(lng = ~longitude, lat = ~latitude, weight = 1,
+                         popup=paste("SNOTEL name:", df$sntl_name, "<br>", "SNOTEL ID:", df$sntl_id, "<br>",
+                                     "Elevation (ft):", df$snotel_elev_ft, "<br>",
+                                     "Observation Years:", df$period_yrs, "<br>",
+                                     "Peak PBIAS:", round(df$peak_pbias_raw,3), "<br>",
+                                     "Product:", "RAW", "<br>",
+                                     "Sensor Change:", paste0(df$T1, " ", df$T2," ",df$T3," ",
+                                                              df$T4," ", df$T5," ", df$T6," ",
+                                                              df$T7," ", df$T8," ", df$T9," ",
+                                                              df$T10," ", df$T11," ", df$T12," ",
+                                                              df$T13," ", df$T14," ", df$T15),"<br>" ),
+                         radius = 6000,
+                         color = ~pal_pbias(peak_pbias_raw), fillOpacity = 0.6,
+                         highlightOptions = highlightOptions(weight = 10),
+                         label = ~sntl_name,
+                         group = "RAW",
+                         layerId = ~paste0("R_", df$sntl_station))%>%
+              
               addLegend(pal = pal_pbias, values = ~pbias_daymet,title = "",
-                        group = c("DAYMET", "GRIDMET","PRISM"),
+                        group = c("DAYMET", "GRIDMET","PRISM", "RAW"),
                         position = "topleft" )
             
           }else{
@@ -506,8 +638,6 @@ server <- function(input, output, session) {
             fig
             })
       }
-        
-      
       }else{
         if (pprod == "PRISM") {
           path <- paste0("data/WEPP_WITH_",pprod,"/")
@@ -538,9 +668,40 @@ server <- function(input, output, session) {
               fig
             })
           }
-          
-          
-        }
+        }else{
+          if(pprod == "RAW"){
+            path <- paste0("data/WEPP_WITH_",pprod,"/")
+            # print(path)
+            if(sntlno == "Select Option"){
+              return()
+            }else{
+              tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
+              tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
+              # print(str(tsf))
+              output$ts <- renderPlotly({
+                req(pprod)
+                req(sntlno)
+                ax <- list(
+                  title = " "
+                )
+                
+                fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, type = 'scatter',
+                               mode = 'lines', name = "Observed SWE (mm)",
+                               line = list(color = '#000000'))
+                fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
+                                         mode = 'lines',
+                                         line = list(color = '#FF0000')) 
+                fig <- fig %>% layout(xaxis = ax, yaxis = ax, 
+                                      legend = list(orientation = "h",   # show entries horizontally
+                                                    xanchor = "center",  # use center of legend as anchor
+                                                    x = 0.5))
+                fig
+              })
+            }
+            
+          }
+                      
+                    }
       }
     }
        
