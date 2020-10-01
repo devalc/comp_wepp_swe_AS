@@ -60,3 +60,10 @@ b <- ggplot(d.m) +
   theme(legend.position ="none") 
 ggplotly(b)
 
+
+
+ lst <- list.files("C:\\Users\\Chinmay\\Desktop\\SWE_WEPP_AS\\DAILY_SWE_RESULTS\\WEPP_WITH_DAYMET\\", pattern = ".csv")
+a <-sapply( str_split(lst, "_"), `[`, 1)
+an <- as.numeric(a)
+an <- sort(an)
+an<- as.character(an)
