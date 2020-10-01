@@ -6,8 +6,8 @@ create_theme(
     theme = "superhero",
     bs_vars_navbar(
         height = "50px",
-        default_bg = "#17141D",
-        default_color = "#17141D",
+        default_bg = "#24292E",
+        default_color = "#24292E",
         default_link_color = "#FFFFFF",
         default_link_active_color = "#FFAE42"
     ),
@@ -31,7 +31,7 @@ create_theme(
         danger_border = "#d175b8"
     ),
     bs_vars_wells(
-        bg = "#17141D",
+        bg = "#24292E",
         border = "#ffffff"
     ),
     # bs_vars_table(
