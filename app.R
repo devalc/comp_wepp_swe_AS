@@ -9,8 +9,8 @@ library(shinycustomloader)
 # data frame
 
 df <- readRDS("data/final_with_temp.RDS")
-
-# df[ , 32:46] <- lapply(df[ , 32:46], as.Date,format = "%m/%d/%Y")
+df1 <- df
+df1[ , 32:46]<- lapply(df[ , 32:46], as.Date,format = "%m/%d/%Y")
 # 
 # df$T1 <- tidyr::replace_na(df$T1, " ")
 
@@ -69,7 +69,7 @@ ui <- navbarPage(title = "WEPP Performance Explorer",
                                           
                                           tags$head(
                                               # Include our custom CSS
-                                              includeCSS("styles.css"),
+                                              includeCSS("www/styles.css"),
                                               includeScript("gtag.js"
                                               )
                                               ),
@@ -588,7 +588,13 @@ server <- function(input, output, session) {
       }else
       tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
       tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
-      # print(str(tsf))
+      df1 <- df1 %>% filter(sntl_id == input$snotel)
+      schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
+                                                   "T4", "T5", "T6",
+                                                   "T7", "T8", "T9",
+                                                   "T10", "T11", "T12",
+                                                   "T13", "T14", "T5")]))
+
       output$ts <- renderPlotly({
         req(pprod)
         req(sntlno)
@@ -601,12 +607,44 @@ server <- function(input, output, session) {
                        line = list(color = '#000000'))
         fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)', 
                                  mode = 'lines', line = list(color = '#FF0000')) 
-        fig <- fig %>% layout(xaxis = ax, yaxis = ax, 
+        fig <- fig %>% 
+          add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
+          add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+          add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>%
+          layout(xaxis = ax, yaxis = ax, 
                               legend = list(orientation = "h",   # show entries horizontally
                                             xanchor = "center",  # use center of legend as anchor
                                             x = 0.5),
                               margin = list( pad = 0, autoexpand = TRUE))
         fig
+        
       })
     }else{
       if (pprod == "GRIDMET") {
@@ -618,6 +656,14 @@ server <- function(input, output, session) {
           tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
           tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
           # print(str(tsf))
+          df1 <- df1 %>% filter(sntl_id == input$snotel)
+          schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
+                                                    "T4", "T5", "T6",
+                                                    "T7", "T8", "T9",
+                                                    "T10", "T11", "T12",
+                                                    "T13", "T14", "T5")]))
+          
+          
           output$ts <- renderPlotly({
             req(pprod)
             req(sntlno)
@@ -631,7 +677,37 @@ server <- function(input, output, session) {
             fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
                                      mode = 'lines',
                                      line = list(color = '#FF0000')) 
-            fig <- fig %>% layout(xaxis = ax, yaxis = ax, 
+            fig <- fig %>% 
+              add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
+              add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+              add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>% layout(xaxis = ax, yaxis = ax, 
                                   legend = list(orientation = "h",   # show entries horizontally
                                                 xanchor = "center",  # use center of legend as anchor
                                                 x = 0.5))
@@ -648,6 +724,14 @@ server <- function(input, output, session) {
             tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
             tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
             # print(str(tsf))
+            df1 <- df1 %>% filter(sntl_id == input$snotel)
+            schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
+                                                      "T4", "T5", "T6",
+                                                      "T7", "T8", "T9",
+                                                      "T10", "T11", "T12",
+                                                      "T13", "T14", "T5")]))
+            
+            
             output$ts <- renderPlotly({
               req(pprod)
               req(sntlno)
@@ -661,7 +745,37 @@ server <- function(input, output, session) {
               fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
                                        mode = 'lines',
                                        line = list(color = '#FF0000')) 
-              fig <- fig %>% layout(xaxis = ax, yaxis = ax, 
+              fig <- fig %>% 
+                add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
+                add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>% layout(xaxis = ax, yaxis = ax, 
                                     legend = list(orientation = "h",   # show entries horizontally
                                                   xanchor = "center",  # use center of legend as anchor
                                                   x = 0.5))
@@ -678,6 +792,14 @@ server <- function(input, output, session) {
               tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
               tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
               # print(str(tsf))
+              df1 <- df1 %>% filter(sntl_id == input$snotel)
+              schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
+                                                        "T4", "T5", "T6",
+                                                        "T7", "T8", "T9",
+                                                        "T10", "T11", "T12",
+                                                        "T13", "T14", "T5")]))
+              
+              
               output$ts <- renderPlotly({
                 req(pprod)
                 req(sntlno)
@@ -691,7 +813,37 @@ server <- function(input, output, session) {
                 fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
                                          mode = 'lines',
                                          line = list(color = '#FF0000')) 
-                fig <- fig %>% layout(xaxis = ax, yaxis = ax, 
+                fig <- fig %>% 
+                  add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
+                  add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+                  add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>% layout(xaxis = ax, yaxis = ax, 
                                       legend = list(orientation = "h",   # show entries horizontally
                                                     xanchor = "center",  # use center of legend as anchor
                                                     x = 0.5))
