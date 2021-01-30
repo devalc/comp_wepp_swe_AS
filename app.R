@@ -11,8 +11,7 @@ library(shinycustomloader)
 df <- readRDS("data/final_with_temp.RDS")
 df1 <- df
 df1[ , 32:46]<- lapply(df[ , 32:46], as.Date,format = "%m/%d/%Y")
-# 
-# df$T1 <- tidyr::replace_na(df$T1, " ")
+
 
 lst <- list.files("data/WEPP_WITH_DAYMET/", pattern = ".csv")
 nos <-sapply( str_split(lst, "_"), `[`, 1) %>%
@@ -92,7 +91,7 @@ ui <- navbarPage(title = "WEPP Performance Explorer",
                                                         
                                                        
                                                         
-                                                        plotOutput("box", height = 350)
+                                                        plotlyOutput("box", height = 350)
                                                         
                                                         ),
                                          )
@@ -207,18 +206,18 @@ server <- function(input, output, session) {
   
   
   
-  output$box <- renderPlot({
+  output$box <- renderPlotly({
     par(mar=c(1,3,0,0))
-    boxplot(value~variable,
-            data=data_map(),
-            main=" ",
-            xlab=" ",
-            ylab=" ",
-            col="#69b3a2",
-            border="black",
-            las=1,
-            names=c('DAYMET','GRIDMET','PRISM', 'RAW')
-    )
+    p <- ggplot(data_map(), aes(x=variable, y=value, fill=variable)) + 
+      geom_boxplot()+
+      guides(fill=FALSE)+ theme(axis.text.x = element_text(angle = 90),
+                                legend.position = "none",
+                                axis.title = element_blank())
+    
+    fig <- ggplotly(p)
+    
+    fig
+    
   })
     
 
