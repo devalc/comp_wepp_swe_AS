@@ -6,6 +6,10 @@ library(tidyverse)
 library(reshape2)
 library(shinyWidgets)
 library(shinycustomloader)
+library(qs)
+library(hrbrthemes)
+library(cowplot)
+library(bslib)
 # data frame
 
 df <- readRDS("data/final_with_temp.RDS")
@@ -20,7 +24,8 @@ nos <-sapply( str_split(lst, "_"), `[`, 1) %>%
 
 # color palette
 
-pal_nse <- colorBin("BuPu", df$nse_daymet, bins = c(-40,-20, -10,-5,0,.2,0.4,0.6,0.8,1.0), pretty = TRUE,
+pal_nse <- colorBin("BuPu", df$nse_daymet, bins = c(-40,-20, -10,-5,0,.2,0.4,0.6,0.8,1.0), 
+                    pretty = TRUE,
          na.color = "#808080", alpha = FALSE, reverse = FALSE,
          right = FALSE)
 
@@ -39,16 +44,19 @@ vars <- c(
 )
 
 prods <- c(
-  "Select Option" = "Select Option",
-  "DAYMET_" = "DAYMET",
-  "GRIDMET_" = "GRIDMET",
-  "PRISM_" = "PRISM",
-  "RAW_" = "RAW"
+  # "Select Option" = "Select Option",
+  "DAYMET" = "DAYMET",
+  "GRIDMET" = "GRIDMET",
+  "PRISM" = "PRISM",
+  "RAW" = "RAW"
 )
 
 
-sntlno <- c( prepend(nos, "Select Option"))
 
+# sntlno <- c( prepend(nos, "Select Option"))
+sntlno <- nos
+
+dfpath<- "data/Climate_merged_dfs_cd"
 
 ## ----------------------------------Init Options---------------------------------------##
 options(shiny.maxRequestSize = 100 * 1024 ^ 2)
@@ -59,7 +67,9 @@ options(shiny.maxRequestSize = 100 * 1024 ^ 2)
 ui <- navbarPage(title = "WEPP Performance Explorer",
                              
                           id="nav",
-                 theme = "mytheme.css",
+                 # theme = "mytheme.css",
+                 theme = bslib::bs_theme(primary = "#F5946D", secondary = "#25E7F3", 
+                                         success = "#A8CEDD", bootswatch = "flatly"),
                   
                              
                              tabPanel("Spatial Map",
@@ -104,14 +114,14 @@ ui <- navbarPage(title = "WEPP Performance Explorer",
                             includeScript("gtag.js"
                             )
                           ),
-                          
+                          sidebarLayout(
                           sidebarPanel(width = 3,
                                        
                                        pickerInput("product", "Precipitation Product", 
-                                                   prods, selected = NULL),
+                                                   prods, selected = "DAYMET"),
                                        
                                        pickerInput("snotel", "SNOTEL ID", 
-                                                   sntlno, selected = NULL),
+                                                   sntlno, selected = 623),
                                        ),
                           mainPanel(width = 9,
                                     
@@ -129,7 +139,68 @@ ui <- navbarPage(title = "WEPP Performance Explorer",
                                     
                                             
                                     
+                                    ))
+                 ),
+                 tabPanel("Climate Comparisons",
+                          
+                          tags$head(
+                            includeScript("gtag.js"
+                            )
+                          ),
+                          
+                          sidebarLayout(
+                          sidebarPanel(width = 3,
+                                       
+                                       # pickerInput("product", "Precipitation Product", 
+                                       #             prods, selected = NULL),
+                                       
+                                       pickerInput("snotelcc", "SNOTEL ID", 
+                                                   sntlno, selected = 623),
+                                       
+                                       pickerInput("clivar", "Climate variable",
+                                                   choices = c("precip_mm",
+                                                               "duration_hr",
+                                                               "tp",
+                                                               "ip",
+                                                               "tmax",
+                                                               "tmin",
+                                                               "rad",
+                                                               # "w-vl",
+                                                               # "w-dir",
+                                                               "tdew"),
+                                                   selected = "tmin"),
+                          ),
+                          mainPanel(width = 9,
+                                    
+                                    fluidRow(
+                                      column(
+                                        6,
+                                        offset = 0,
+                                        plotlyOutput("prod_scatter_prism") %>% shinycssloaders::withSpinner()
+                                        ),
+                                      column(
+                                        6,
+                                        offset = 0,
+                                        plotlyOutput("prod_scatter_daymet")%>% shinycssloaders::withSpinner()
+                                      )
+                                      ),
+                                    HTML("<br>"),
+                                    fluidRow(
+                                      column(
+                                        6,
+                                        offset = 0,
+                                        plotlyOutput("prod_scatter_gridmet")%>% shinycssloaders::withSpinner()
+                                      ),
+                                      column(
+                                        6,
+                                        offset = 0,
+                                        plotlyOutput("prod_scatter_bcqc")%>% shinycssloaders::withSpinner()
+                                      )
                                     )
+                                    # 
+                                    
+                                    
+                          ))
                  )
                  )
                              
@@ -858,8 +929,576 @@ server <- function(input, output, session) {
        
   
     })
+  
+  
+  
+  observe({
+    
+    input$snotelcc
+    input$clivar
 
+  scatdf<- reactive({
+    
+    req(input$snotelcc)
+    req(input$clivar)
+    
+    schange_date <- df1 %>% filter(sntl_id == input$snotelcc) %>% pull(T1)
+    
+   qs::qread(list.files(dfpath,
+                                   pattern = input$snotelcc,
+                                   full.names = T))  %>% 
+      dplyr::select(Date, dplyr::contains(input$clivar)) %>% 
+      na.omit() %>% dplyr::mutate(change = case_when(Date <= schange_date ~ "before", TRUE ~ "after"))
+    
+  })
+  
+ output$prod_scatter_prism <- renderPlotly({
+      req(scatdf())
+        
+      if (input$clivar == "tmin") {
+       scatdf() %>% ggplot(aes(x = tmin_raw_snotel, 
+                     y = tmin_prism, color = change, shape = change)) +
+                       geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+         theme(axis.title.x = element_blank(),
+               axis.title.y = element_blank(),
+               title = element_text(hjust = 0.5),
+               legend.position = "right"
+         )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
+          geom_abline(slope = 1, intercept = 0, color = "red",
+                      size = 1, linetype = "dashed",show.legend = TRUE)+
+          geom_smooth(method=lm , se=F,
+                      size = 1,show.legend = TRUE) 
+      }else
+        if (input$clivar == "tmax") {
+          
+          scatdf() %>% ggplot(aes(x = tmax_raw_snotel, 
+                                  y = tmax_prism, color = change, shape = change)) +
+            geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+            theme(axis.title.x = element_blank(),
+                  axis.title.y = element_blank(),
+                  title = element_text(hjust = 0.5)
+            )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
+            geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+            geom_smooth(method=lm , se=TRUE, size = 1) 
+          
+        }else
+          if (input$clivar == "tdew") {
+            
+            scatdf() %>% ggplot(aes(x = tdew_raw_snotel, 
+                                    y = tdew_prism, color = change, shape = change)) +
+              geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+              theme(axis.title.x = element_blank(),
+                    axis.title.y = element_blank(),
+                    title = element_text(hjust = 0.5)
+              )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
+              geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+              geom_smooth(method=lm , se=TRUE, size = 1) 
+            
+          }else
+            if (input$clivar == "rad") {
+              
+              scatdf() %>% ggplot(aes(x = rad_raw_snotel, 
+                                      y = rad_prism, color = change, shape = change)) +
+                geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                theme(axis.title.x = element_blank(),
+                      axis.title.y = element_blank(),
+                      title = element_text(hjust = 0.5)
+                )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
+                geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                geom_smooth(method=lm , se=TRUE, size = 1) 
+              
+            }else
+              if (input$clivar == "w-vl") {
+                
+                scatdf() %>% ggplot(aes(x = w-vl_raw_snotel, 
+                                        y = w-vl_prism, color = change, shape = change)) +
+                  geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                  theme(axis.title.x = element_blank(),
+                        axis.title.y = element_blank(),
+                        title = element_text(hjust = 0.5)
+                  )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
+                  geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                  geom_smooth(method=lm , se=TRUE, size = 1) 
+                
+              }else
+                if (input$clivar == "w-dir") {
+                  
+                  scatdf() %>% ggplot(aes(x = w-dir_raw_snotel, 
+                                          y = w-dir_prism, color = change, shape = change)) +
+                    geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                    theme(axis.title.x = element_blank(),
+                          axis.title.y = element_blank(),
+                          title = element_text(hjust = 0.5)
+                    )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
+                    geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                    geom_smooth(method=lm , se=TRUE, size = 1) 
+                  
+                }else
+                  if (input$clivar == "tp") {
+                    
+                    scatdf() %>% ggplot(aes(x = tp_raw_snotel, 
+                                            y = tp_prism, color = change, shape = change)) +
+                      geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                      theme(axis.title.x = element_blank(),
+                            axis.title.y = element_blank(),
+                            title = element_text(hjust = 0.5)
+                      )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
+                      geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                      geom_smooth(method=lm , se=TRUE, size = 1) 
+                    
+                  }else
+                    if (input$clivar == "ip") {
+                      
+                      scatdf() %>% ggplot(aes(x = ip_raw_snotel, 
+                                              y = ip_prism, color = change, shape = change)) +
+                        geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                        theme(axis.title.x = element_blank(),
+                              axis.title.y = element_blank(),
+                              title = element_text(hjust = 0.5)
+                        )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
+                        geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                        geom_smooth(method=lm , se=TRUE, size = 1) 
+                      
+                    }else
+                      if (input$clivar == "duration_hr") {
+                        
+                        scatdf() %>% ggplot(aes(x = duration_hr_raw_snotel, 
+                                                y = duration_hr_prism, color = change, shape = change)) +
+                          geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                          theme(axis.title.x = element_blank(),
+                                axis.title.y = element_blank(),
+                                title = element_text(hjust = 0.5)
+                          )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
+                          geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                          geom_smooth(method=lm , se=TRUE, size = 1) 
+                        
+                      }else
+                        if (input$clivar == "precip_mm") {
+                          
+                          scatdf() %>% ggplot(aes(x = precip_mm_raw_snotel, 
+                                                  y = precip_mm_prism, color = change, shape = change)) +
+                            geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                            theme(axis.title.x = element_blank(),
+                                  axis.title.y = element_blank(),
+                                  title = element_text(hjust = 0.5)
+                            )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
+                            geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                            geom_smooth(method=lm , se=TRUE, size = 1) 
+                          
+                        }
+        
+      })
+      
+      output$prod_scatter_daymet <- renderPlotly({
+        req(scatdf())
+        
+        if (input$clivar == "tmin") {
+        scatdf() %>% ggplot(aes(x = tmin_raw_snotel, 
+                                y = tmin_daymet, color = change, shape = change)) +
+          geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C") + 
+          theme(axis.title.x = element_blank(),
+                axis.title.y = element_blank(),
+                title = element_text(hjust = 0.5)
+                )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
+          geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+          geom_smooth(method=lm , se=TRUE, size=1) 
+        }else
+          if (input$clivar == "tmax") {
+            
+            scatdf() %>% ggplot(aes(x = tmax_raw_snotel, 
+                                    y = tmax_daymet, color = change, shape = change)) +
+              geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+              theme(axis.title.x = element_blank(),
+                    axis.title.y = element_blank(),
+                    title = element_text(hjust = 0.5)
+              )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
+              geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+              geom_smooth(method=lm , se=TRUE, size = 1) 
+            
+          }else
+            if (input$clivar == "tdew") {
+              
+              scatdf() %>% ggplot(aes(x = tdew_raw_snotel, 
+                                      y = tdew_daymet, color = change, shape = change)) +
+                geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                theme(axis.title.x = element_blank(),
+                      axis.title.y = element_blank(),
+                      title = element_text(hjust = 0.5)
+                )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                geom_smooth(method=lm ,  se=TRUE, size = 1) 
+              
+            }else
+              if (input$clivar == "rad") {
+                
+                scatdf() %>% ggplot(aes(x = rad_raw_snotel, 
+                                        y = rad_daymet, color = change, shape = change)) +
+                  geom_point() + theme_bw()  + scale_color_viridis(discrete = TRUE, option = "C")+ 
+                  theme(axis.title.x = element_blank(),
+                        axis.title.y = element_blank(),
+                        title = element_text(hjust = 0.5)
+                  )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                  geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                  geom_smooth(method=lm , se=TRUE, size = 1) 
+                
+              }else
+                if (input$clivar == "w-vl") {
+                  
+                  scatdf() %>% ggplot(aes(x = w-vl_raw_snotel, 
+                                          y = w-vl_daymet, color = change, shape = change)) +
+                    geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                    theme(axis.title.x = element_blank(),
+                          axis.title.y = element_blank(),
+                          title = element_text(hjust = 0.5)
+                    )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                    geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                    geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                  
+                }else
+                  if (input$clivar == "w-dir") {
+                    
+                    scatdf() %>% ggplot(aes(x = w-dir_raw_snotel, 
+                                            y = w-dir_daymet, color = change, shape = change)) +
+                      geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C")  + 
+                      theme(axis.title.x = element_blank(),
+                            axis.title.y = element_blank(),
+                            title = element_text(hjust = 0.5)
+                      )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                      geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                      geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                    
+                  }else
+                    if (input$clivar == "tp") {
+                      
+                      scatdf() %>% ggplot(aes(x = tp_raw_snotel, 
+                                              y = tp_daymet, color = change, shape = change)) +
+                        geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                        theme(axis.title.x = element_blank(),
+                              axis.title.y = element_blank(),
+                              title = element_text(hjust = 0.5)
+                        )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                        geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                        geom_smooth(method=lm , se=TRUE, size = 1) 
+                      
+                    }else
+                      if (input$clivar == "ip") {
+                        
+                        scatdf() %>% ggplot(aes(x = ip_raw_snotel, 
+                                                y = ip_daymet, color = change, shape = change)) +
+                          geom_point() + theme_bw()  + scale_color_viridis(discrete = TRUE, option = "C")+ 
+                          theme(axis.title.x = element_blank(),
+                                axis.title.y = element_blank(),
+                                title = element_text(hjust = 0.5)
+                          )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                          geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                          geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                        
+                      }else
+                        if (input$clivar == "duration_hr") {
+                          
+                          scatdf() %>% ggplot(aes(x = duration_hr_raw_snotel, 
+                                                  y = duration_hr_daymet, color = change, shape = change)) +
+                            geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                            theme(axis.title.x = element_blank(),
+                                  axis.title.y = element_blank(),
+                                  title = element_text(hjust = 0.5)
+                            )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                            geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                            geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                          
+                        }else
+                          if (input$clivar == "precip_mm") {
+                            
+                            scatdf() %>% ggplot(aes(x = precip_mm_raw_snotel, 
+                                                    y = precip_mm_daymet, color = change, shape = change)) +
+                              geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                              theme(axis.title.x = element_blank(),
+                                    axis.title.y = element_blank(),
+                                    title = element_text(hjust = 0.5)
+                              )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                              geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                              geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                            
+                          }
+      })
+      
+      output$prod_scatter_gridmet <- renderPlotly({
+        req(scatdf())
+        
+        if (input$clivar == "tmin") {
+          
+       
+        scatdf() %>% ggplot(aes(x = tmin_raw_snotel, 
+                                y = tmin_gridmet, color = change, shape = change)) +
+          geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+          theme(axis.title.x = element_blank(),
+                axis.title.y = element_blank(),
+                title = element_text(hjust = 0.5)
+          )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
+          geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+          geom_smooth(method=lm , se=TRUE, size = 1) 
+          
+        }else
+          if (input$clivar == "tmax") {
+            
+            scatdf() %>% ggplot(aes(x = tmax_raw_snotel, 
+                                    y = tmax_gridmet, color = change, shape = change)) +
+              geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+              theme(axis.title.x = element_blank(),
+                    axis.title.y = element_blank(),
+                    title = element_text(hjust = 0.5)
+              )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
+              geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+              geom_smooth(method=lm ,  se=TRUE, size = 1) 
+            
+          }else
+            if (input$clivar == "tdew") {
+              
+              scatdf() %>% ggplot(aes(x = tdew_raw_snotel, 
+                                      y = tdew_gridmet, color = change, shape = change)) +
+                geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                theme(axis.title.x = element_blank(),
+                      axis.title.y = element_blank(),
+                      title = element_text(hjust = 0.5)
+                )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                geom_smooth(method=lm ,  se=TRUE, size = 1) 
+              
+            }else
+              if (input$clivar == "rad") {
+                
+                scatdf() %>% ggplot(aes(x = rad_raw_snotel, 
+                                        y = rad_gridmet, color = change, shape = change)) +
+                  geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                  theme(axis.title.x = element_blank(),
+                        axis.title.y = element_blank(),
+                        title = element_text(hjust = 0.5)
+                  )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                  geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                  geom_smooth(method=lm ,se=TRUE, size = 1) 
+                
+              }else
+                if (input$clivar == "w-vl") {
+                  
+                  scatdf() %>% ggplot(aes(x = w-vl_raw_snotel, 
+                                          y = w-vl_gridmet, color = change, shape = change)) +
+                    geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                    theme(axis.title.x = element_blank(),
+                          axis.title.y = element_blank(),
+                          title = element_text(hjust = 0.5)
+                    )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                    geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                    geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                  
+                }else
+                  if (input$clivar == "w-dir") {
+                    
+                    scatdf() %>% ggplot(aes(x = w-dir_raw_snotel, 
+                                            y = w-dir_gridmet, color = change, shape = change)) +
+                      geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                      theme(axis.title.x = element_blank(),
+                            axis.title.y = element_blank(),
+                            title = element_text(hjust = 0.5)
+                      )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                      geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                      geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                    
+                  }else
+                    if (input$clivar == "tp") {
+                      
+                      scatdf() %>% ggplot(aes(x = tp_raw_snotel, 
+                                              y = tp_gridmet, color = change, shape = change)) +
+                        geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C")  + 
+                        theme(axis.title.x = element_blank(),
+                              axis.title.y = element_blank(),
+                              title = element_text(hjust = 0.5)
+                        )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                        geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                        geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                      
+                    }else
+                      if (input$clivar == "ip") {
+                        
+                        scatdf() %>% ggplot(aes(x = ip_raw_snotel, 
+                                                y = ip_gridmet, color = change, shape = change)) +
+                          geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                          theme(axis.title.x = element_blank(),
+                                axis.title.y = element_blank(),
+                                title = element_text(hjust = 0.5)
+                          )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                          geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                          geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                        
+                      }else
+                        if (input$clivar == "duration_hr") {
+                          
+                          scatdf() %>% ggplot(aes(x = duration_hr_raw_snotel, 
+                                                  y = duration_hr_gridmet, color = change, shape = change)) +
+                            geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                            theme(axis.title.x = element_blank(),
+                                  axis.title.y = element_blank(),
+                                  title = element_text(hjust = 0.5)
+                            )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                            geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                            geom_smooth(method=lm , se=TRUE, size = 1) 
+                          
+                        }else
+                          if (input$clivar == "precip_mm") {
+                            
+                            scatdf() %>% ggplot(aes(x = precip_mm_raw_snotel, 
+                                                    y = precip_mm_gridmet, color = change, shape = change)) +
+                              geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                              theme(axis.title.x = element_blank(),
+                                    axis.title.y = element_blank(),
+                                    title = element_text(hjust = 0.5)
+                              )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
+                              geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                              geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                            
+                          }
+        
+      })
+      
+      
+      output$prod_scatter_bcqc <- renderPlotly({
+        req(scatdf())
+        
+       if (input$clivar == "tmin") {
+         
+         scatdf() %>% ggplot(aes(x = tmin_raw_snotel, 
+                                 y = tmin_bcqc, color = change, shape = change)) +
+           geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+           theme(axis.title.x = element_blank(),
+                 axis.title.y = element_blank(),
+                 title = element_text(hjust = 0.5)
+           )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
+           geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+           geom_smooth(method=lm ,  se=TRUE, size = 1) 
+         
+       }else
+         if (input$clivar == "tmax") {
+           
+           scatdf() %>% ggplot(aes(x = tmax_raw_snotel, 
+                                   y = tmax_bcqc, color = change, shape = change)) +
+             geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C")  + 
+             theme(axis.title.x = element_blank(),
+                   axis.title.y = element_blank(),
+                   title = element_text(hjust = 0.5)
+             )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
+             geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+             geom_smooth(method=lm , se=TRUE, size = 1) 
+           
+         }else
+           if (input$clivar == "tdew") {
+             
+             scatdf() %>% ggplot(aes(x = tdew_raw_snotel, 
+                                     y = tdew_bcqc, color = change, shape = change)) +
+               geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+               theme(axis.title.x = element_blank(),
+                     axis.title.y = element_blank(),
+                     title = element_text(hjust = 0.5)
+               )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
+               geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+               geom_smooth(method=lm ,se=TRUE, size = 1) 
+             
+           }else
+             if (input$clivar == "rad") {
+               
+               scatdf() %>% ggplot(aes(x = rad_raw_snotel, 
+                                       y = rad_bcqc, color = change, shape = change)) +
+                 geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                 theme(axis.title.x = element_blank(),
+                       axis.title.y = element_blank(),
+                       title = element_text(hjust = 0.5)
+                 )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
+                 geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                 geom_smooth(method=lm , se=TRUE, size = 1) 
+               
+             }else
+               if (input$clivar == "w-vl") {
+                 
+                 scatdf() %>% ggplot(aes(x = w-vl_raw_snotel, 
+                                         y = w-vl_bcqc, color = change, shape = change)) +
+                   geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                   theme(axis.title.x = element_blank(),
+                         axis.title.y = element_blank(),
+                         title = element_text(hjust = 0.5)
+                   )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
+                   geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                   geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                 
+               }else
+                 if (input$clivar == "w-dir") {
+                   
+                   scatdf() %>% ggplot(aes(x = w-dir_raw_snotel, 
+                                           y = w-dir_bcqc, color = change, shape = change)) +
+                     geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                     theme(axis.title.x = element_blank(),
+                           axis.title.y = element_blank(),
+                           title = element_text(hjust = 0.5)
+                     )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
+                     geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                     geom_smooth(method=lm , se=TRUE, size = 1) 
+                   
+                 }else
+                   if (input$clivar == "tp") {
+                     
+                     scatdf() %>% ggplot(aes(x = tp_raw_snotel, 
+                                             y = tp_bcqc, color = change, shape = change)) +
+                       geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C")  + 
+                       theme(axis.title.x = element_blank(),
+                             axis.title.y = element_blank(),
+                             title = element_text(hjust = 0.5)
+                       )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
+                       geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                       geom_smooth(method=lm , se=TRUE, size = 1) 
+                     
+                   }else
+                     if (input$clivar == "ip") {
+                       
+                       scatdf() %>% ggplot(aes(x = ip_raw_snotel, 
+                                               y = ip_bcqc, color = change, shape = change)) +
+                         geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C")  + 
+                         theme(axis.title.x = element_blank(),
+                               axis.title.y = element_blank(),
+                               title = element_text(hjust = 0.5)
+                         )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
+                         geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                         geom_smooth(method=lm , se=TRUE, size = 1) 
+                       
+                     }else
+                       if (input$clivar == "duration_hr (1:1 line - Dashed Red)") {
+                         
+                         scatdf() %>% ggplot(aes(x = duration_hr_raw_snotel, 
+                                                 y = duration_hr_bcqc, color = change, shape = change)) +
+                           geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                           theme(axis.title.x = element_blank(),
+                                 axis.title.y = element_blank(),
+                                 title = element_text(hjust = 0.5)
+                           )+ggtitle("BCQC vs. SNOTEL")+
+                           geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                           geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                         
+                       }else
+                         if (input$clivar == "precip_mm (1:1 line - Dashed Red)") {
+                           
+                           scatdf() %>% ggplot(aes(x = precip_mm_raw_snotel, 
+                                                   y = precip_mm_bcqc, color = change, shape = change)) +
+                             geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                             theme(axis.title.x = element_blank(),
+                                   axis.title.y = element_blank(),
+                                   title = element_text(hjust = 0.5)
+                             )+ggtitle("BCQC vs. SNOTEL")+
+                             geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                             geom_smooth(method=lm ,  se=TRUE, size = 1) 
+                           
+                         }
+        
+      })
+      
+  })
     
 }
 
+# run_with_themer(shinyApp(ui, server))
 shinyApp(ui, server)
