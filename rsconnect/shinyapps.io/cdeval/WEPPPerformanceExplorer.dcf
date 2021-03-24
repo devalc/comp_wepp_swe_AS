@@ -5,9 +5,9 @@ account: cdeval
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2912020
-bundleId: 4159743
+bundleId: 4391030
 url: https://cdeval.shinyapps.io/WEPPPerformanceExplorer/
-when: 1611977035.93135
+when: 1616618261.99172
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: .gitattributes|.RData|create_theme.R|explote.R|merge_final_and_temp_sensor.R|README.md|gifs/swe.gif|old_data_and_files/FINAL.CSV|old_data_and_files/final.rds|old_data_and_files/SNOTEL_Temperature_sensor_change_dates__dictionary1.csv|old_data_and_files/styles.css
