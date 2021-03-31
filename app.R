@@ -1,3 +1,27 @@
+## --------------------------------------------------------------------------------------##
+##
+## Script name: 
+##
+## Purpose of the script:
+##
+## Author: Chinmay Deval
+##
+## Created On: 2021-03-30
+##
+## Copyright (c) Chinmay Deval, 2021
+## Email: chinmay.deval91@gmail.com
+##
+## --------------------------------------------------------------------------------------##
+##  Notes: #TBD 1. before/after first sensor change stats for obs/sim swe
+##  2. add cumulative precip plots for each product vs snotel.
+##   
+##
+## --------------------------------------------------------------------------------------##
+
+
+
+## ----------------------------------Load packages---------------------------------------##
+
 library(shiny)
 library(leaflet)
 library(viridis)
@@ -169,6 +193,7 @@ ui <- navbarPage(title = "WEPP Performance Explorer",
                                                                # "w-dir",
                                                                "tdew"),
                                                    selected = "tmin"),
+                                       # actionButton("update", "Update"),
                           ),
                           mainPanel(width = 9,
                                     
@@ -645,290 +670,377 @@ server <- function(input, output, session) {
             
         })
  
+  # v <- reactiveValues(ts= NULL)
   
-  observe({
-    pprod <- input$product
+  # observeEvent(input$Update,{
+    observe({
     sntlno <- input$snotel
-
-    if (pprod == "DAYMET") {
-      path <- paste0("data/WEPP_WITH_",pprod,"/")
-      # print(path)
-      if(sntlno == "Select Option"){
-        return()
-      }else
-      tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
-      tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
-      df1 <- df1 %>% filter(sntl_id == input$snotel)
-      schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
-                                                   "T4", "T5", "T6",
-                                                   "T7", "T8", "T9",
-                                                   "T10", "T11", "T12",
-                                                   "T13", "T14", "T5")]))
-
-      output$ts <- renderPlotly({
-        req(pprod)
-        req(sntlno)
-        ax <- list(
-          title = " "
-        )
-        
-        fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, 
-                       type = 'scatter', mode = 'lines', name = "Observed SWE (mm)",
-                       line = list(color = '#000000'))
-        fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)', 
-                                 mode = 'lines', line = list(color = '#FF0000')) 
-        fig <- fig %>% 
-          add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
-          add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-          add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                    line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>%
-          layout(xaxis = ax, yaxis = ax, 
-                              legend = list(orientation = "h",   # show entries horizontally
-                                            xanchor = "center",  # use center of legend as anchor
-                                            x = 0.5),
-                              margin = list( pad = 0, autoexpand = TRUE))
-        fig
-        
-      })
-    }else{
-      if (pprod == "GRIDMET") {
-        path <- paste0("data/WEPP_WITH_",pprod,"/")
-        # print(path)
-        if(sntlno == "Select Option"){
-          return()
-        }else{
-          tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
-          tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
-          # print(str(tsf))
-          df1 <- df1 %>% filter(sntl_id == input$snotel)
-          schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
-                                                    "T4", "T5", "T6",
-                                                    "T7", "T8", "T9",
-                                                    "T10", "T11", "T12",
-                                                    "T13", "T14", "T5")]))
-          
-          
-          output$ts <- renderPlotly({
-            req(pprod)
-            req(sntlno)
-            ax <- list(
-              title = " "
-            )
-            
-            fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, type = 'scatter', 
-                           mode = 'lines', name = "Observed SWE (mm)",
-                           line = list(color = '#000000'))
-            fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
-                                     mode = 'lines',
-                                     line = list(color = '#FF0000')) 
-            fig <- fig %>% 
-              add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
-              add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-              add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                        line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>% layout(xaxis = ax, yaxis = ax, 
-                                  legend = list(orientation = "h",   # show entries horizontally
-                                                xanchor = "center",  # use center of legend as anchor
-                                                x = 0.5))
-            fig
-            })
-      }
-      }else{
-        if (pprod == "PRISM") {
-          path <- paste0("data/WEPP_WITH_",pprod,"/")
-          # print(path)
-          if(sntlno == "Select Option"){
-            return()
-          }else{
-            tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
-            tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
-            # print(str(tsf))
-            df1 <- df1 %>% filter(sntl_id == input$snotel)
-            schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
-                                                      "T4", "T5", "T6",
-                                                      "T7", "T8", "T9",
-                                                      "T10", "T11", "T12",
-                                                      "T13", "T14", "T5")]))
-            
-            
-            output$ts <- renderPlotly({
-              req(pprod)
-              req(sntlno)
-              ax <- list(
-                title = " "
-              )
-              
-              fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, type = 'scatter',
-                             mode = 'lines', name = "Observed SWE (mm)",
-                             line = list(color = '#000000'))
-              fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
-                                       mode = 'lines',
-                                       line = list(color = '#FF0000')) 
-              fig <- fig %>% 
-                add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
-                add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                          line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>% layout(xaxis = ax, yaxis = ax, 
-                                    legend = list(orientation = "h",   # show entries horizontally
-                                                  xanchor = "center",  # use center of legend as anchor
-                                                  x = 0.5))
-              fig
-            })
-          }
-        }else{
-          if(pprod == "RAW"){
-            path <- paste0("data/WEPP_WITH_",pprod,"/")
-            # print(path)
-            if(sntlno == "Select Option"){
-              return()
-            }else{
-              tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
-              tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
-              # print(str(tsf))
-              df1 <- df1 %>% filter(sntl_id == input$snotel)
-              schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
-                                                        "T4", "T5", "T6",
-                                                        "T7", "T8", "T9",
-                                                        "T10", "T11", "T12",
-                                                        "T13", "T14", "T5")]))
-              
-              
-              output$ts <- renderPlotly({
-                req(pprod)
-                req(sntlno)
-                ax <- list(
-                  title = " "
-                )
-                
-                fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, type = 'scatter',
-                               mode = 'lines', name = "Observed SWE (mm)",
-                               line = list(color = '#000000'))
-                fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
-                                         mode = 'lines',
-                                         line = list(color = '#FF0000')) 
-                fig <- fig %>% 
-                  add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
-                  add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
-                  add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
-                            line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>% layout(xaxis = ax, yaxis = ax, 
-                                      legend = list(orientation = "h",   # show entries horizontally
-                                                    xanchor = "center",  # use center of legend as anchor
-                                                    x = 0.5))
-                fig
-              })
-            }
-            
-          }
-                      
-                    }
-      }
-    }
-       
-  
+    if(sntlno == "Select Option"){
+      return()
+    }else
+    path1 <- paste0("data/WEPP_WITH_","DAYMET","/")
+    path2 <- paste0("data/WEPP_WITH_","GRIDMET","/")
+    path3 <- paste0("data/WEPP_WITH_","PRISM","/")
+    path4 <- paste0("data/WEPP_WITH_","RAW","/")
+    tsf_daymet <- read.csv(list.files(path1,pattern = input$snotel,full.names = T))
+    tsf_daymet$Date <- as.Date(tsf_daymet$Date, "%Y-%m-%d")
+    tsf_gridmet <- read.csv(list.files(path2,pattern = input$snotel,full.names = T))
+    tsf_gridmet$Date <- as.Date(tsf_gridmet$Date, "%Y-%m-%d")
+    tsf_prism <- read.csv(list.files(path3,pattern = input$snotel,full.names = T))
+    tsf_prism$Date <- as.Date(tsf_prism$Date, "%Y-%m-%d")
+    tsf_raw <- read.csv(list.files(path4,pattern = input$snotel,full.names = T))
+    tsf_raw$Date <- as.Date(tsf_raw$Date, "%Y-%m-%d")
+    df1 <- df1 %>% filter(sntl_id == input$snotel)
+    schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
+                                              "T4", "T5", "T6",
+                                              "T7", "T8", "T9",
+                                              "T10", "T11", "T12",
+                                              "T13", "T14", "T5")]))
+    
+    output$ts <- renderPlotly({
+      # req(pprod)
+      req(sntlno)
+      ax <- list(
+        title = " "
+      )
+      
+      fig <- plot_ly(tsf_daymet, x = ~Date, y = ~Observed.SWE, 
+                     type = 'scatter', mode = 'lines', name = "Observed SWE (mm)",
+                     line = list(color = '#003f5c'))
+      fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'DAYMET Simulated SWE (mm)', 
+                               mode = 'lines', line = list(color = '#58508d')) 
+      fig <- fig %>% add_trace(data =tsf_gridmet, y = ~Simulated.SWE, name = 'GRIDMET Simulated SWE (mm)', 
+                               mode = 'lines', line = list(color = '#bc5090'))
+      fig <- fig %>% add_trace(data =tsf_prism, y = ~Simulated.SWE, name = 'PRISM Simulated SWE (mm)', 
+                               mode = 'lines', line = list(color = '#ff6361'))
+      fig <- fig %>% add_trace(data =tsf_raw, y = ~Simulated.SWE, name = 'RAW Simulated SWE (mm)', 
+                               mode = 'lines', line = list(color = '#ffa600'))
+      
+      fig <- fig %>% 
+        add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
+        add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+        add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+                  line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>%
+        layout(xaxis = ax, yaxis = ax, 
+               legend = list(orientation = "h",   # show entries horizontally
+                             xanchor = "center",  # use center of legend as anchor
+                             x = 0.5),
+               margin = list( pad = 0, autoexpand = TRUE))
+      fig
+    
     })
+    # })
+  })
+  
+  # observe({
+  #   pprod <- input$product
+  #   sntlno <- input$snotel
+  # 
+  #   if (pprod == "DAYMET") {
+  #     path <- paste0("data/WEPP_WITH_",pprod,"/")
+  #     # print(path)
+  #     if(sntlno == "Select Option"){
+  #       return()
+  #     }else
+  #     tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
+  #     tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
+  #     df1 <- df1 %>% filter(sntl_id == input$snotel)
+  #     schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
+  #                                                  "T4", "T5", "T6",
+  #                                                  "T7", "T8", "T9",
+  #                                                  "T10", "T11", "T12",
+  #                                                  "T13", "T14", "T5")]))
+  # 
+  #     output$ts <- renderPlotly({
+  #       req(pprod)
+  #       req(sntlno)
+  #       ax <- list(
+  #         title = " "
+  #       )
+  #       
+  #       fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, 
+  #                      type = 'scatter', mode = 'lines', name = "Observed SWE (mm)",
+  #                      line = list(color = '#000000'))
+  #       fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)', 
+  #                                mode = 'lines', line = list(color = '#FF0000')) 
+  #       fig <- fig %>% 
+  #         add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
+  #         add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #         add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                   line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>%
+  #         layout(xaxis = ax, yaxis = ax, 
+  #                             legend = list(orientation = "h",   # show entries horizontally
+  #                                           xanchor = "center",  # use center of legend as anchor
+  #                                           x = 0.5),
+  #                             margin = list( pad = 0, autoexpand = TRUE))
+  #       fig
+  #       
+  #     })
+  #   }else{
+  #     if (pprod == "GRIDMET") {
+  #       path <- paste0("data/WEPP_WITH_",pprod,"/")
+  #       # print(path)
+  #       if(sntlno == "Select Option"){
+  #         return()
+  #       }else{
+  #         tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
+  #         tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
+  #         # print(str(tsf))
+  #         df1 <- df1 %>% filter(sntl_id == input$snotel)
+  #         schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
+  #                                                   "T4", "T5", "T6",
+  #                                                   "T7", "T8", "T9",
+  #                                                   "T10", "T11", "T12",
+  #                                                   "T13", "T14", "T5")]))
+  #         
+  #         
+  #         output$ts <- renderPlotly({
+  #           req(pprod)
+  #           req(sntlno)
+  #           ax <- list(
+  #             title = " "
+  #           )
+  #           
+  #           fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, type = 'scatter', 
+  #                          mode = 'lines', name = "Observed SWE (mm)",
+  #                          line = list(color = '#000000'))
+  #           fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
+  #                                    mode = 'lines',
+  #                                    line = list(color = '#FF0000')) 
+  #           fig <- fig %>% 
+  #             add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
+  #             add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #             add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                       line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>% layout(xaxis = ax, yaxis = ax, 
+  #                                 legend = list(orientation = "h",   # show entries horizontally
+  #                                               xanchor = "center",  # use center of legend as anchor
+  #                                               x = 0.5))
+  #           fig
+  #           })
+  #     }
+  #     }else{
+  #       if (pprod == "PRISM") {
+  #         path <- paste0("data/WEPP_WITH_",pprod,"/")
+  #         # print(path)
+  #         if(sntlno == "Select Option"){
+  #           return()
+  #         }else{
+  #           tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
+  #           tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
+  #           # print(str(tsf))
+  #           df1 <- df1 %>% filter(sntl_id == input$snotel)
+  #           schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
+  #                                                     "T4", "T5", "T6",
+  #                                                     "T7", "T8", "T9",
+  #                                                     "T10", "T11", "T12",
+  #                                                     "T13", "T14", "T5")]))
+  #           
+  #           
+  #           output$ts <- renderPlotly({
+  #             req(pprod)
+  #             req(sntlno)
+  #             ax <- list(
+  #               title = " "
+  #             )
+  #             
+  #             fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, type = 'scatter',
+  #                            mode = 'lines', name = "Observed SWE (mm)",
+  #                            line = list(color = '#000000'))
+  #             fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
+  #                                      mode = 'lines',
+  #                                      line = list(color = '#FF0000')) 
+  #             fig <- fig %>% 
+  #               add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
+  #               add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #               add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                         line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>% layout(xaxis = ax, yaxis = ax, 
+  #                                   legend = list(orientation = "h",   # show entries horizontally
+  #                                                 xanchor = "center",  # use center of legend as anchor
+  #                                                 x = 0.5))
+  #             fig
+  #           })
+  #         }
+  #       }else{
+  #         if(pprod == "RAW"){
+  #           path <- paste0("data/WEPP_WITH_",pprod,"/")
+  #           # print(path)
+  #           if(sntlno == "Select Option"){
+  #             return()
+  #           }else{
+  #             tsf <- read.csv(list.files(path,pattern = input$snotel,full.names = T))
+  #             tsf$Date <- as.Date(tsf$Date, "%Y-%m-%d")
+  #             # print(str(tsf))
+  #             df1 <- df1 %>% filter(sntl_id == input$snotel)
+  #             schangevals <- as.vector(as.matrix(df1[,c("T1", "T2", "T3",
+  #                                                       "T4", "T5", "T6",
+  #                                                       "T7", "T8", "T9",
+  #                                                       "T10", "T11", "T12",
+  #                                                       "T13", "T14", "T5")]))
+  #             
+  #             
+  #             output$ts <- renderPlotly({
+  #               req(pprod)
+  #               req(sntlno)
+  #               ax <- list(
+  #                 title = " "
+  #               )
+  #               
+  #               fig <- plot_ly(tsf, x = ~Date, y = ~Observed.SWE, type = 'scatter',
+  #                              mode = 'lines', name = "Observed SWE (mm)",
+  #                              line = list(color = '#000000'))
+  #               fig <- fig %>% add_trace(y = ~Simulated.SWE, name = 'Simulated SWE (mm)',
+  #                                        mode = 'lines',
+  #                                        line = list(color = '#FF0000')) 
+  #               fig <- fig %>% 
+  #                 add_trace(x =schangevals[1],type = 'scatter', mode = 'lines', 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>%
+  #                 add_trace(x =schangevals[2],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[3],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[4],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[5],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[6],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[7],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[8],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[9],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[10],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[11],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[12],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[13],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[14],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change')%>% 
+  #                 add_trace(x =schangevals[15],type = 'scatter', mode = 'lines',  showlegend = FALSE, 
+  #                           line = list(color = 'Blue',dash = 'dash'),name = 'Sensor change') %>% layout(xaxis = ax, yaxis = ax, 
+  #                                     legend = list(orientation = "h",   # show entries horizontally
+  #                                                   xanchor = "center",  # use center of legend as anchor
+  #                                                   x = 0.5))
+  #               fig
+  #             })
+  #           }
+  #           
+  #         }
+  #                     
+  #                   }
+  #     }
+  #   }
+  #      
+  # 
+  #   })
   
   
   
@@ -958,13 +1070,13 @@ server <- function(input, output, session) {
       if (input$clivar == "tmin") {
        scatdf() %>% ggplot(aes(x = tmin_raw_snotel, 
                      y = tmin_prism, color = change, shape = change)) +
-                       geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                       geom_point() + theme_bw() + scale_colour_ipsum() + 
          theme(axis.title.x = element_blank(),
                axis.title.y = element_blank(),
                title = element_text(hjust = 0.5),
                legend.position = "right"
-         )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
-          geom_abline(slope = 1, intercept = 0, color = "red",
+         )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Blue)")+
+          geom_abline(slope = 1, intercept = 0, color = "blue",
                       size = 1, linetype = "dashed",show.legend = TRUE)+
           geom_smooth(method=lm , se=F,
                       size = 1,show.legend = TRUE) 
@@ -973,12 +1085,12 @@ server <- function(input, output, session) {
           
           scatdf() %>% ggplot(aes(x = tmax_raw_snotel, 
                                   y = tmax_prism, color = change, shape = change)) +
-            geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+            geom_point() + theme_bw() + scale_colour_ipsum() + 
             theme(axis.title.x = element_blank(),
                   axis.title.y = element_blank(),
                   title = element_text(hjust = 0.5)
-            )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
-            geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+            )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Blue)")+
+            geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
             geom_smooth(method=lm , se=TRUE, size = 1) 
           
         }else
@@ -986,12 +1098,12 @@ server <- function(input, output, session) {
             
             scatdf() %>% ggplot(aes(x = tdew_raw_snotel, 
                                     y = tdew_prism, color = change, shape = change)) +
-              geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+              geom_point() + theme_bw() + scale_colour_ipsum() + 
               theme(axis.title.x = element_blank(),
                     axis.title.y = element_blank(),
                     title = element_text(hjust = 0.5)
-              )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
-              geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+              )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Blue)")+
+              geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
               geom_smooth(method=lm , se=TRUE, size = 1) 
             
           }else
@@ -999,12 +1111,12 @@ server <- function(input, output, session) {
               
               scatdf() %>% ggplot(aes(x = rad_raw_snotel, 
                                       y = rad_prism, color = change, shape = change)) +
-                geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                geom_point() + theme_bw() + scale_colour_ipsum() + 
                 theme(axis.title.x = element_blank(),
                       axis.title.y = element_blank(),
                       title = element_text(hjust = 0.5)
-                )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
-                geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Blue)")+
+                geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                 geom_smooth(method=lm , se=TRUE, size = 1) 
               
             }else
@@ -1012,12 +1124,12 @@ server <- function(input, output, session) {
                 
                 scatdf() %>% ggplot(aes(x = w-vl_raw_snotel, 
                                         y = w-vl_prism, color = change, shape = change)) +
-                  geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                  geom_point() + theme_bw() + scale_colour_ipsum() + 
                   theme(axis.title.x = element_blank(),
                         axis.title.y = element_blank(),
                         title = element_text(hjust = 0.5)
-                  )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
-                  geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                  )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Blue)")+
+                  geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                   geom_smooth(method=lm , se=TRUE, size = 1) 
                 
               }else
@@ -1025,12 +1137,12 @@ server <- function(input, output, session) {
                   
                   scatdf() %>% ggplot(aes(x = w-dir_raw_snotel, 
                                           y = w-dir_prism, color = change, shape = change)) +
-                    geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                    geom_point() + theme_bw() + scale_colour_ipsum() + 
                     theme(axis.title.x = element_blank(),
                           axis.title.y = element_blank(),
                           title = element_text(hjust = 0.5)
-                    )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
-                    geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                    )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Blue)")+
+                    geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                     geom_smooth(method=lm , se=TRUE, size = 1) 
                   
                 }else
@@ -1038,12 +1150,12 @@ server <- function(input, output, session) {
                     
                     scatdf() %>% ggplot(aes(x = tp_raw_snotel, 
                                             y = tp_prism, color = change, shape = change)) +
-                      geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                      geom_point() + theme_bw() + scale_colour_ipsum() + 
                       theme(axis.title.x = element_blank(),
                             axis.title.y = element_blank(),
                             title = element_text(hjust = 0.5)
-                      )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
-                      geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                      )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Blue)")+
+                      geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                       geom_smooth(method=lm , se=TRUE, size = 1) 
                     
                   }else
@@ -1051,12 +1163,12 @@ server <- function(input, output, session) {
                       
                       scatdf() %>% ggplot(aes(x = ip_raw_snotel, 
                                               y = ip_prism, color = change, shape = change)) +
-                        geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                        geom_point() + theme_bw() + scale_colour_ipsum() + 
                         theme(axis.title.x = element_blank(),
                               axis.title.y = element_blank(),
                               title = element_text(hjust = 0.5)
-                        )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
-                        geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                        )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Blue)")+
+                        geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                         geom_smooth(method=lm , se=TRUE, size = 1) 
                       
                     }else
@@ -1064,12 +1176,12 @@ server <- function(input, output, session) {
                         
                         scatdf() %>% ggplot(aes(x = duration_hr_raw_snotel, 
                                                 y = duration_hr_prism, color = change, shape = change)) +
-                          geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                          geom_point() + theme_bw() + scale_colour_ipsum() + 
                           theme(axis.title.x = element_blank(),
                                 axis.title.y = element_blank(),
                                 title = element_text(hjust = 0.5)
-                          )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
-                          geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                          )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Blue)")+
+                          geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                           geom_smooth(method=lm , se=TRUE, size = 1) 
                         
                       }else
@@ -1077,12 +1189,12 @@ server <- function(input, output, session) {
                           
                           scatdf() %>% ggplot(aes(x = precip_mm_raw_snotel, 
                                                   y = precip_mm_prism, color = change, shape = change)) +
-                            geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                            geom_point() + theme_bw() + scale_colour_ipsum() + 
                             theme(axis.title.x = element_blank(),
                                   axis.title.y = element_blank(),
                                   title = element_text(hjust = 0.5)
-                            )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Red)")+
-                            geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                            )+ggtitle("PRISM vs. SNOTEL (1:1 line - Dashed Blue)")+
+                            geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                             geom_smooth(method=lm , se=TRUE, size = 1) 
                           
                         }
@@ -1095,24 +1207,24 @@ server <- function(input, output, session) {
         if (input$clivar == "tmin") {
         scatdf() %>% ggplot(aes(x = tmin_raw_snotel, 
                                 y = tmin_daymet, color = change, shape = change)) +
-          geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C") + 
+          geom_point() + theme_bw()+ scale_colour_ipsum() + 
           theme(axis.title.x = element_blank(),
                 axis.title.y = element_blank(),
                 title = element_text(hjust = 0.5)
-                )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
-          geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+          geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
           geom_smooth(method=lm , se=TRUE, size=1) 
         }else
           if (input$clivar == "tmax") {
             
             scatdf() %>% ggplot(aes(x = tmax_raw_snotel, 
                                     y = tmax_daymet, color = change, shape = change)) +
-              geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+              geom_point() + theme_bw() + scale_colour_ipsum() + 
               theme(axis.title.x = element_blank(),
                     axis.title.y = element_blank(),
                     title = element_text(hjust = 0.5)
-              )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
-              geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+              )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+              geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
               geom_smooth(method=lm , se=TRUE, size = 1) 
             
           }else
@@ -1120,12 +1232,12 @@ server <- function(input, output, session) {
               
               scatdf() %>% ggplot(aes(x = tdew_raw_snotel, 
                                       y = tdew_daymet, color = change, shape = change)) +
-                geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                geom_point() + theme_bw() + scale_colour_ipsum() + 
                 theme(axis.title.x = element_blank(),
                       axis.title.y = element_blank(),
                       title = element_text(hjust = 0.5)
-                )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                 geom_smooth(method=lm ,  se=TRUE, size = 1) 
               
             }else
@@ -1133,12 +1245,12 @@ server <- function(input, output, session) {
                 
                 scatdf() %>% ggplot(aes(x = rad_raw_snotel, 
                                         y = rad_daymet, color = change, shape = change)) +
-                  geom_point() + theme_bw()  + scale_color_viridis(discrete = TRUE, option = "C")+ 
+                  geom_point() + theme_bw()  + scale_colour_ipsum()+ 
                   theme(axis.title.x = element_blank(),
                         axis.title.y = element_blank(),
                         title = element_text(hjust = 0.5)
-                  )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                  geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                  )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                  geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                   geom_smooth(method=lm , se=TRUE, size = 1) 
                 
               }else
@@ -1146,12 +1258,12 @@ server <- function(input, output, session) {
                   
                   scatdf() %>% ggplot(aes(x = w-vl_raw_snotel, 
                                           y = w-vl_daymet, color = change, shape = change)) +
-                    geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                    geom_point() + theme_bw() + scale_colour_ipsum() + 
                     theme(axis.title.x = element_blank(),
                           axis.title.y = element_blank(),
                           title = element_text(hjust = 0.5)
-                    )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                    geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                    )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                    geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                     geom_smooth(method=lm ,  se=TRUE, size = 1) 
                   
                 }else
@@ -1159,12 +1271,12 @@ server <- function(input, output, session) {
                     
                     scatdf() %>% ggplot(aes(x = w-dir_raw_snotel, 
                                             y = w-dir_daymet, color = change, shape = change)) +
-                      geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C")  + 
+                      geom_point() + theme_bw()+ scale_colour_ipsum()  + 
                       theme(axis.title.x = element_blank(),
                             axis.title.y = element_blank(),
                             title = element_text(hjust = 0.5)
-                      )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                      geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                      )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                      geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                       geom_smooth(method=lm ,  se=TRUE, size = 1) 
                     
                   }else
@@ -1172,12 +1284,12 @@ server <- function(input, output, session) {
                       
                       scatdf() %>% ggplot(aes(x = tp_raw_snotel, 
                                               y = tp_daymet, color = change, shape = change)) +
-                        geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                        geom_point() + theme_bw() + scale_colour_ipsum() + 
                         theme(axis.title.x = element_blank(),
                               axis.title.y = element_blank(),
                               title = element_text(hjust = 0.5)
-                        )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                        geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                        )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                        geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                         geom_smooth(method=lm , se=TRUE, size = 1) 
                       
                     }else
@@ -1185,12 +1297,12 @@ server <- function(input, output, session) {
                         
                         scatdf() %>% ggplot(aes(x = ip_raw_snotel, 
                                                 y = ip_daymet, color = change, shape = change)) +
-                          geom_point() + theme_bw()  + scale_color_viridis(discrete = TRUE, option = "C")+ 
+                          geom_point() + theme_bw()  + scale_colour_ipsum()+ 
                           theme(axis.title.x = element_blank(),
                                 axis.title.y = element_blank(),
                                 title = element_text(hjust = 0.5)
-                          )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                          geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                          )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                          geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                           geom_smooth(method=lm ,  se=TRUE, size = 1) 
                         
                       }else
@@ -1198,12 +1310,12 @@ server <- function(input, output, session) {
                           
                           scatdf() %>% ggplot(aes(x = duration_hr_raw_snotel, 
                                                   y = duration_hr_daymet, color = change, shape = change)) +
-                            geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                            geom_point() + theme_bw() + scale_colour_ipsum() + 
                             theme(axis.title.x = element_blank(),
                                   axis.title.y = element_blank(),
                                   title = element_text(hjust = 0.5)
-                            )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                            geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                            )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                            geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                             geom_smooth(method=lm ,  se=TRUE, size = 1) 
                           
                         }else
@@ -1211,12 +1323,12 @@ server <- function(input, output, session) {
                             
                             scatdf() %>% ggplot(aes(x = precip_mm_raw_snotel, 
                                                     y = precip_mm_daymet, color = change, shape = change)) +
-                              geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                              geom_point() + theme_bw() + scale_colour_ipsum() + 
                               theme(axis.title.x = element_blank(),
                                     axis.title.y = element_blank(),
                                     title = element_text(hjust = 0.5)
-                              )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                              geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                              )+ggtitle("DAYMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                              geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                               geom_smooth(method=lm ,  se=TRUE, size = 1) 
                             
                           }
@@ -1230,12 +1342,12 @@ server <- function(input, output, session) {
        
         scatdf() %>% ggplot(aes(x = tmin_raw_snotel, 
                                 y = tmin_gridmet, color = change, shape = change)) +
-          geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+          geom_point() + theme_bw() + scale_colour_ipsum() + 
           theme(axis.title.x = element_blank(),
                 axis.title.y = element_blank(),
                 title = element_text(hjust = 0.5)
-          )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
-          geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+          )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+          geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
           geom_smooth(method=lm , se=TRUE, size = 1) 
           
         }else
@@ -1243,12 +1355,12 @@ server <- function(input, output, session) {
             
             scatdf() %>% ggplot(aes(x = tmax_raw_snotel, 
                                     y = tmax_gridmet, color = change, shape = change)) +
-              geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+              geom_point() + theme_bw() + scale_colour_ipsum() + 
               theme(axis.title.x = element_blank(),
                     axis.title.y = element_blank(),
                     title = element_text(hjust = 0.5)
-              )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
-              geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+              )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+              geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
               geom_smooth(method=lm ,  se=TRUE, size = 1) 
             
           }else
@@ -1256,12 +1368,12 @@ server <- function(input, output, session) {
               
               scatdf() %>% ggplot(aes(x = tdew_raw_snotel, 
                                       y = tdew_gridmet, color = change, shape = change)) +
-                geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                geom_point() + theme_bw() + scale_colour_ipsum() + 
                 theme(axis.title.x = element_blank(),
                       axis.title.y = element_blank(),
                       title = element_text(hjust = 0.5)
-                )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                 geom_smooth(method=lm ,  se=TRUE, size = 1) 
               
             }else
@@ -1269,12 +1381,12 @@ server <- function(input, output, session) {
                 
                 scatdf() %>% ggplot(aes(x = rad_raw_snotel, 
                                         y = rad_gridmet, color = change, shape = change)) +
-                  geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                  geom_point() + theme_bw() + scale_colour_ipsum() + 
                   theme(axis.title.x = element_blank(),
                         axis.title.y = element_blank(),
                         title = element_text(hjust = 0.5)
-                  )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                  geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                  )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                  geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                   geom_smooth(method=lm ,se=TRUE, size = 1) 
                 
               }else
@@ -1282,12 +1394,12 @@ server <- function(input, output, session) {
                   
                   scatdf() %>% ggplot(aes(x = w-vl_raw_snotel, 
                                           y = w-vl_gridmet, color = change, shape = change)) +
-                    geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                    geom_point() + theme_bw() + scale_colour_ipsum() + 
                     theme(axis.title.x = element_blank(),
                           axis.title.y = element_blank(),
                           title = element_text(hjust = 0.5)
-                    )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                    geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                    )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                    geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                     geom_smooth(method=lm ,  se=TRUE, size = 1) 
                   
                 }else
@@ -1295,12 +1407,12 @@ server <- function(input, output, session) {
                     
                     scatdf() %>% ggplot(aes(x = w-dir_raw_snotel, 
                                             y = w-dir_gridmet, color = change, shape = change)) +
-                      geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                      geom_point() + theme_bw() + scale_colour_ipsum() + 
                       theme(axis.title.x = element_blank(),
                             axis.title.y = element_blank(),
                             title = element_text(hjust = 0.5)
-                      )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                      geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                      )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                      geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                       geom_smooth(method=lm ,  se=TRUE, size = 1) 
                     
                   }else
@@ -1308,12 +1420,12 @@ server <- function(input, output, session) {
                       
                       scatdf() %>% ggplot(aes(x = tp_raw_snotel, 
                                               y = tp_gridmet, color = change, shape = change)) +
-                        geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C")  + 
+                        geom_point() + theme_bw()+ scale_colour_ipsum()  + 
                         theme(axis.title.x = element_blank(),
                               axis.title.y = element_blank(),
                               title = element_text(hjust = 0.5)
-                        )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                        geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                        )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                        geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                         geom_smooth(method=lm ,  se=TRUE, size = 1) 
                       
                     }else
@@ -1321,12 +1433,12 @@ server <- function(input, output, session) {
                         
                         scatdf() %>% ggplot(aes(x = ip_raw_snotel, 
                                                 y = ip_gridmet, color = change, shape = change)) +
-                          geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                          geom_point() + theme_bw() + scale_colour_ipsum() + 
                           theme(axis.title.x = element_blank(),
                                 axis.title.y = element_blank(),
                                 title = element_text(hjust = 0.5)
-                          )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                          geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                          )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                          geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                           geom_smooth(method=lm ,  se=TRUE, size = 1) 
                         
                       }else
@@ -1334,12 +1446,12 @@ server <- function(input, output, session) {
                           
                           scatdf() %>% ggplot(aes(x = duration_hr_raw_snotel, 
                                                   y = duration_hr_gridmet, color = change, shape = change)) +
-                            geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                            geom_point() + theme_bw() + scale_colour_ipsum() + 
                             theme(axis.title.x = element_blank(),
                                   axis.title.y = element_blank(),
                                   title = element_text(hjust = 0.5)
-                            )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                            geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                            )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                            geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                             geom_smooth(method=lm , se=TRUE, size = 1) 
                           
                         }else
@@ -1347,12 +1459,12 @@ server <- function(input, output, session) {
                             
                             scatdf() %>% ggplot(aes(x = precip_mm_raw_snotel, 
                                                     y = precip_mm_gridmet, color = change, shape = change)) +
-                              geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                              geom_point() + theme_bw() + scale_colour_ipsum() + 
                               theme(axis.title.x = element_blank(),
                                     axis.title.y = element_blank(),
                                     title = element_text(hjust = 0.5)
-                              )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Red)")+
-                              geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                              )+ggtitle("GRIDMET vs. SNOTEL (1:1 line - Dashed Blue)")+
+                              geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                               geom_smooth(method=lm ,  se=TRUE, size = 1) 
                             
                           }
@@ -1367,12 +1479,12 @@ server <- function(input, output, session) {
          
          scatdf() %>% ggplot(aes(x = tmin_raw_snotel, 
                                  y = tmin_bcqc, color = change, shape = change)) +
-           geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+           geom_point() + theme_bw() + scale_colour_ipsum() + 
            theme(axis.title.x = element_blank(),
                  axis.title.y = element_blank(),
                  title = element_text(hjust = 0.5)
-           )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
-           geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+           )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Blue)")+
+           geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
            geom_smooth(method=lm ,  se=TRUE, size = 1) 
          
        }else
@@ -1380,12 +1492,12 @@ server <- function(input, output, session) {
            
            scatdf() %>% ggplot(aes(x = tmax_raw_snotel, 
                                    y = tmax_bcqc, color = change, shape = change)) +
-             geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C")  + 
+             geom_point() + theme_bw()+ scale_colour_ipsum()  + 
              theme(axis.title.x = element_blank(),
                    axis.title.y = element_blank(),
                    title = element_text(hjust = 0.5)
-             )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
-             geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+             )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Blue)")+
+             geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
              geom_smooth(method=lm , se=TRUE, size = 1) 
            
          }else
@@ -1393,12 +1505,12 @@ server <- function(input, output, session) {
              
              scatdf() %>% ggplot(aes(x = tdew_raw_snotel, 
                                      y = tdew_bcqc, color = change, shape = change)) +
-               geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+               geom_point() + theme_bw() + scale_colour_ipsum() + 
                theme(axis.title.x = element_blank(),
                      axis.title.y = element_blank(),
                      title = element_text(hjust = 0.5)
-               )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
-               geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+               )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Blue)")+
+               geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                geom_smooth(method=lm ,se=TRUE, size = 1) 
              
            }else
@@ -1406,12 +1518,12 @@ server <- function(input, output, session) {
                
                scatdf() %>% ggplot(aes(x = rad_raw_snotel, 
                                        y = rad_bcqc, color = change, shape = change)) +
-                 geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                 geom_point() + theme_bw() + scale_colour_ipsum() + 
                  theme(axis.title.x = element_blank(),
                        axis.title.y = element_blank(),
                        title = element_text(hjust = 0.5)
-                 )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
-                 geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                 )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Blue)")+
+                 geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                  geom_smooth(method=lm , se=TRUE, size = 1) 
                
              }else
@@ -1419,12 +1531,12 @@ server <- function(input, output, session) {
                  
                  scatdf() %>% ggplot(aes(x = w-vl_raw_snotel, 
                                          y = w-vl_bcqc, color = change, shape = change)) +
-                   geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                   geom_point() + theme_bw() + scale_colour_ipsum() + 
                    theme(axis.title.x = element_blank(),
                          axis.title.y = element_blank(),
                          title = element_text(hjust = 0.5)
-                   )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
-                   geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                   )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Blue)")+
+                   geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                    geom_smooth(method=lm ,  se=TRUE, size = 1) 
                  
                }else
@@ -1432,12 +1544,12 @@ server <- function(input, output, session) {
                    
                    scatdf() %>% ggplot(aes(x = w-dir_raw_snotel, 
                                            y = w-dir_bcqc, color = change, shape = change)) +
-                     geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                     geom_point() + theme_bw() + scale_colour_ipsum() + 
                      theme(axis.title.x = element_blank(),
                            axis.title.y = element_blank(),
                            title = element_text(hjust = 0.5)
-                     )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
-                     geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                     )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Blue)")+
+                     geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                      geom_smooth(method=lm , se=TRUE, size = 1) 
                    
                  }else
@@ -1445,12 +1557,12 @@ server <- function(input, output, session) {
                      
                      scatdf() %>% ggplot(aes(x = tp_raw_snotel, 
                                              y = tp_bcqc, color = change, shape = change)) +
-                       geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C")  + 
+                       geom_point() + theme_bw()+ scale_colour_ipsum()  + 
                        theme(axis.title.x = element_blank(),
                              axis.title.y = element_blank(),
                              title = element_text(hjust = 0.5)
-                       )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
-                       geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                       )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Blue)")+
+                       geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                        geom_smooth(method=lm , se=TRUE, size = 1) 
                      
                    }else
@@ -1458,38 +1570,38 @@ server <- function(input, output, session) {
                        
                        scatdf() %>% ggplot(aes(x = ip_raw_snotel, 
                                                y = ip_bcqc, color = change, shape = change)) +
-                         geom_point() + theme_bw()+ scale_color_viridis(discrete = TRUE, option = "C")  + 
+                         geom_point() + theme_bw()+ scale_colour_ipsum()  + 
                          theme(axis.title.x = element_blank(),
                                axis.title.y = element_blank(),
                                title = element_text(hjust = 0.5)
-                         )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Red)")+
-                         geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                         )+ggtitle("BCQC vs. SNOTEL (1:1 line - Dashed Blue)")+
+                         geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                          geom_smooth(method=lm , se=TRUE, size = 1) 
                        
                      }else
-                       if (input$clivar == "duration_hr (1:1 line - Dashed Red)") {
+                       if (input$clivar == "duration_hr (1:1 line - Dashed Blue)") {
                          
                          scatdf() %>% ggplot(aes(x = duration_hr_raw_snotel, 
                                                  y = duration_hr_bcqc, color = change, shape = change)) +
-                           geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                           geom_point() + theme_bw() + scale_colour_ipsum() + 
                            theme(axis.title.x = element_blank(),
                                  axis.title.y = element_blank(),
                                  title = element_text(hjust = 0.5)
                            )+ggtitle("BCQC vs. SNOTEL")+
-                           geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                           geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                            geom_smooth(method=lm ,  se=TRUE, size = 1) 
                          
                        }else
-                         if (input$clivar == "precip_mm (1:1 line - Dashed Red)") {
+                         if (input$clivar == "precip_mm (1:1 line - Dashed Blue)") {
                            
                            scatdf() %>% ggplot(aes(x = precip_mm_raw_snotel, 
                                                    y = precip_mm_bcqc, color = change, shape = change)) +
-                             geom_point() + theme_bw() + scale_color_viridis(discrete = TRUE, option = "C") + 
+                             geom_point() + theme_bw() + scale_colour_ipsum() + 
                              theme(axis.title.x = element_blank(),
                                    axis.title.y = element_blank(),
                                    title = element_text(hjust = 0.5)
                              )+ggtitle("BCQC vs. SNOTEL")+
-                             geom_abline(slope = 1, intercept = 0, color = "red", size = 1, linetype = "dashed")+
+                             geom_abline(slope = 1, intercept = 0, color = "blue", size = 1, linetype = "dashed")+
                              geom_smooth(method=lm ,  se=TRUE, size = 1) 
                            
                          }
