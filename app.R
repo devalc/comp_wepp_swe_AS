@@ -141,8 +141,8 @@ ui <- navbarPage(title = "WEPP Performance Explorer",
                           sidebarLayout(
                           sidebarPanel(width = 3,
                                        
-                                       pickerInput("product", "Precipitation Product", 
-                                                   prods, selected = "DAYMET"),
+                                       # pickerInput("product", "Precipitation Product", 
+                                       #             prods, selected = "DAYMET"),
                                        
                                        pickerInput("snotel", "SNOTEL ID", 
                                                    sntlno, selected = 623),
